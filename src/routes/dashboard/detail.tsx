@@ -675,7 +675,7 @@ export function DetailPage() {
           <div className="border-t border-white/10 bg-slate-900/20 p-6 sm:p-8">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">
-                Log Activity Peserta
+                Catatan Aktivitas Peserta
               </h3>
               <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400">
                 Total: {logs.length} Log
