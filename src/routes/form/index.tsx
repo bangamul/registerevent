@@ -190,7 +190,12 @@ export function FormPage() {
                   name="independentId"
                   type="text"
                   value={participant.id_independent}
-                  readOnly
+                  onChange={(e) =>
+                    setParticipant({
+                      ...participant,
+                      id_independent: e.target.value,
+                    })
+                  }
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none"
                 />
               </div>

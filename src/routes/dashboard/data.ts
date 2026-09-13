@@ -70,6 +70,11 @@ async function postParticipant(
   const response = await axios.post<ParticipantResponse>(
     `${API_URL}/${endpoint}`,
     formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
   )
 
   if (!response.data.success || !response.data.data) {

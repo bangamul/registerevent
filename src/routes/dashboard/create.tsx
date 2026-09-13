@@ -11,6 +11,8 @@ export function CreatePage() {
     notelp: '',
     email: '',
     pekerjaan: '',
+    gate: '1',
+    role_permission: '1',
   })
   const [foto, setFoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -68,6 +70,13 @@ export function CreatePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
@@ -232,6 +241,47 @@ export function CreatePage() {
                 placeholder=""
                 className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none"
               />
+            </div>
+
+            {/* Gate */}
+            <div>
+              <label
+                htmlFor="pekerjaan"
+                className="block text-xs font-medium uppercase tracking-wider text-slate-400"
+              >
+                Gate
+              </label>
+              <select
+                name="gate"
+                value={formData.gate}
+                onChange={handleInputChange}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+              >
+                <option value="1">Gate 1</option>
+                <option value="2">Gate 2</option>
+                <option value="3">Gate 3</option>
+                <option value="4">Gate 4</option>
+                <option value="5">Gate 5</option>
+              </select>
+            </div>
+
+            {/* Role Permission */}
+            <div>
+              <label
+                htmlFor="pekerjaan"
+                className="block text-xs font-medium uppercase tracking-wider text-slate-400"
+              >
+                Role Permission
+              </label>
+              <select
+                name="role_permission"
+                value={formData.role_permission}
+                onChange={handleInputChange}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+              >
+                <option value="1">Role 1</option>
+                <option value="2">Role 2</option>
+              </select>
             </div>
 
             {/* Actions */}
