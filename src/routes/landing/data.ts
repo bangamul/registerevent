@@ -48,17 +48,6 @@ interface LogListResponse {
   data: LogActivity[]
 }
 
-export type LastActivityLog = {
-  participant_id: number
-  last_created_at: string
-}
-
-interface LastLogListResponse {
-  success: boolean
-  message?: string
-  data: LastActivityLog[]
-}
-
 export async function findParticipants(): Promise<Participant[]> {
   const response = await axios.post<ParticipantListResponse>(
     `${API_URL}/UserPesertaList.php`,
@@ -217,23 +206,4 @@ export async function getParticipantLogs(params: {
   }
 
   return response.data.data
-}
-
-export async function getLastActivityLogs(): Promise<Record<number, string>> {
-  try {
-    const response = await axios.post<LastLogListResponse>(
-      `${API_URL}/GetLastLogs.php`
-    )
-    if (response.data.success && Array.isArray(response.data.data)) {
-      // Ubah array jadi object/map key-value: { [participant_id]: last_created_at }
-      const map: Record<number, string> = {}
-      response.data.data.forEach((item) => {
-        map[item.participant_id] = item.last_created_at
-      })
-      return map
-    }
-    return {}
-  } catch {
-    return {}
-  }
 }

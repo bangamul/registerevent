@@ -1,33 +1,35 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-// import { saveRegistrationId } from '../../lib/registration-session'
-// import { useCurrentUser } from '../../lib/use-current-user'
-import { findParticipants, type Participant } from './data'
+import { findParticipants, getLastActivityLogs, type Participant } from './data'
 
 const PAGE_SIZE = 20
 type SortOption = 'name' | 'latest' | 'oldest'
 
 export function DashboardPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
+  const [lastLogs, setLastLogs] = useState<Record<number, string>>({})
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('name')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // const currentUser = useCurrentUser()
-
   const navigate = useNavigate()
 
   useEffect(() => {
-    async function loadParticipants() {
+    async function loadData() {
       try {
         setLoading(true)
         setError('')
 
-        const data = await findParticipants()
+        // Ambil data peserta dan log terakhir secara paralel biar cepet
+        const [participantData, logData] = await Promise.all([
+          findParticipants(),
+          getLastActivityLogs(),
+        ])
 
-        setParticipants(data)
+        setParticipants(participantData)
+        setLastLogs(logData)
       } catch (err) {
         setError(
           err instanceof Error
@@ -39,7 +41,7 @@ export function DashboardPage() {
       }
     }
 
-    void loadParticipants()
+    void loadData()
   }, [])
 
   const filteredParticipants = [...participants]
@@ -77,7 +79,6 @@ export function DashboardPage() {
 
   const absentCount = participants.length - presentCount
 
-  // Fungsi Export ke Excel (Format HTML .xls)
   function exportToExcel() {
     if (participants.length === 0) {
       alert('Tidak ada data untuk diexport.')
@@ -109,6 +110,7 @@ export function DashboardPage() {
               <th>Gate</th>
               <th>Waktu Kehadiran</th>
               <th>Waktu Kehadiran Sesi 2</th>
+              <th>Waktu Selesai (Log Terakhir)</th>
               <th>Status Kehadiran</th>
             </tr>
           </thead>
@@ -127,6 +129,7 @@ export function DashboardPage() {
                 <td>${p.gate ?? '-'}</td>
                 <td>${p.waktu_hadir ? new Date(p.waktu_hadir).toLocaleString('id-ID') : '-'}</td>
                 <td>${p.waktu_sesi_2 ? new Date(p.waktu_sesi_2).toLocaleString('id-ID') : '-'}</td>
+                <td>${lastLogs[p.id] ? new Date(lastLogs[p.id]).toLocaleString('id-ID') : '-'}</td>
                 <td>${p.status ? 'Hadir' : 'Belum validasi'}</td>
               </tr>
             `,
@@ -152,10 +155,6 @@ export function DashboardPage() {
   }
 
   function openParticipant(participant: Participant) {
-    // if (currentUser) {
-    //   saveRegistrationId(currentUser.id, participant.id_registrasi)
-    // }
-
     navigate({
       to: '/dashboard/detail/$idRegistrasi',
       params: { idRegistrasi: participant.id_registrasi },
@@ -193,10 +192,7 @@ export function DashboardPage() {
               to="/dashboard/create"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95"
             >
-              <svg
-                className="h-5 w-5 fill-current"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
               </svg>
               Tambah Peserta
@@ -204,22 +200,17 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <section
-          className="grid gap-4 md:grid-cols-3"
-          aria-label="Ringkasan peserta"
-        >
+        <section className="grid gap-4 md:grid-cols-3">
           <SummaryCard
             label="Total database peserta"
             value={participants.length}
             tone="white"
           />
-
           <SummaryCard
             label="Sudah validasi"
             value={presentCount}
             tone="cyan"
           />
-
           <SummaryCard
             label="Belum validasi"
             value={absentCount}
@@ -230,55 +221,35 @@ export function DashboardPage() {
         <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">
-                Daftar peserta
-              </h2>
-
+              <h2 className="text-xl font-semibold">Daftar peserta</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Menampilkan {visibleParticipants.length} dari{' '}
-                {filteredParticipants.length} peserta.
+                Menampilkan {visibleParticipants.length} dari {filteredParticipants.length} peserta.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="block">
-                <span className="sr-only">
-                  Cari berdasarkan nama
-                </span>
+              <input
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
+                placeholder="Cari nama peserta..."
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 sm:w-64"
+              />
 
-                <input
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value)
-                    setPage(1)
-                  }}
-                  placeholder="Cari nama peserta..."
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 sm:w-64"
-                />
-              </label>
-
-              <label className="block">
-                <span className="sr-only">
-                  Urutkan peserta
-                </span>
-
-                <select
-                  value={sort}
-                  onChange={(event) => {
-                    setSort(event.target.value as SortOption)
-                    setPage(1)
-                  }}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400 sm:w-52"
-                >
-                  <option value="name">Nama A-Z</option>
-                  <option value="latest">
-                    Kehadiran terbaru
-                  </option>
-                  <option value="oldest">
-                    Kehadiran terlama
-                  </option>
-                </select>
-              </label>
+              <select
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value as SortOption)
+                  setPage(1)
+                }}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400 sm:w-52"
+              >
+                <option value="name">Nama A-Z</option>
+                <option value="latest">Kehadiran terbaru</option>
+                <option value="oldest">Kehadiran terlama</option>
+              </select>
             </div>
           </div>
 
@@ -289,9 +260,7 @@ export function DashboardPage() {
           )}
 
           {!loading && error && (
-            <div className="py-12 text-center text-red-400">
-              {error}
-            </div>
+            <div className="py-12 text-center text-red-400">{error}</div>
           )}
 
           {!loading && !error && (
@@ -302,34 +271,23 @@ export function DashboardPage() {
                     <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-slate-500">
                       <th className="px-4 py-4">No</th>
                       <th className="px-4 py-4">Nama</th>
-                      <th className="px-4 py-4">
-                        Waktu kehadiran
-                      </th>
-                      <th className="px-4 py-4">
-                        Waktu Selesai
-                      </th>
-                      <th className="px-4 py-4">
-                        Status kehadiran
-                      </th>
-                      <th className="px-4 py-4 text-right">
-                        Aksi
-                      </th>
+                      <th className="px-4 py-4">Waktu kehadiran</th>
+                      <th className="px-4 py-4">Waktu Selesai</th>
+                      <th className="px-4 py-4">Status kehadiran</th>
+                      <th className="px-4 py-4 text-right">Aksi</th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {visibleParticipants.map(
-                      (participant, index) => (
-                        <ParticipantTableRow
-                          key={participant.id}
-                          participant={participant}
-                          number={
-                            (page - 1) * PAGE_SIZE + index + 1
-                          }
-                          onView={openParticipant}
-                        />
-                      ),
-                    )}
+                    {visibleParticipants.map((participant, index) => (
+                      <ParticipantTableRow
+                        key={participant.id}
+                        participant={participant}
+                        lastLogTime={lastLogs[participant.id]}
+                        number={(page - 1) * PAGE_SIZE + index + 1}
+                        onView={openParticipant}
+                      />
+                    ))}
                   </tbody>
                 </table>
 
@@ -349,9 +307,7 @@ export function DashboardPage() {
                   <button
                     type="button"
                     disabled={page === 1}
-                    onClick={() =>
-                      setPage((value) => value - 1)
-                    }
+                    onClick={() => setPage((value) => value - 1)}
                     className="rounded-lg border border-slate-700 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Sebelumnya
@@ -360,9 +316,7 @@ export function DashboardPage() {
                   <button
                     type="button"
                     disabled={page === totalPages}
-                    onClick={() =>
-                      setPage((value) => value + 1)
-                    }
+                    onClick={() => setPage((value) => value + 1)}
                     className="rounded-lg border border-slate-700 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Berikutnya
@@ -396,32 +350,28 @@ function SummaryCard({
   return (
     <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
       <p className="text-sm text-slate-400">{label}</p>
-
-      <p className={`mt-4 text-4xl font-bold ${color}`}>
-        {value}
-      </p>
+      <p className={`mt-4 text-4xl font-bold ${color}`}>{value}</p>
     </article>
   )
 }
 
 function ParticipantTableRow({
   participant,
+  lastLogTime,
   number,
   onView,
 }: {
   participant: Participant
+  lastLogTime?: string
   number: number
   onView: (participant: Participant) => void
 }) {
   return (
     <tr className="border-b border-white/5 text-slate-300 transition hover:bg-white/[0.03]">
-      <td className="px-4 py-4 text-slate-500">
-        {number}
-      </td>
+      <td className="px-4 py-4 text-slate-500">{number}</td>
 
       <td className="px-4 py-4 font-medium text-white">
         {participant.name}
-
         <p className="mt-1 text-xs font-normal text-slate-600">
           {participant.id_registrasi}
         </p>
@@ -430,13 +380,11 @@ function ParticipantTableRow({
       <td className="px-4 py-4">
         {participant.waktu_hadir ? (
           <>
-            {new Date(participant.waktu_hadir).toLocaleString(
-              'id-ID',
-              {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              },
-            )} WIB
+            {new Date(participant.waktu_hadir).toLocaleString('id-ID', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}{' '}
+            WIB
           </>
         ) : (
           <span className="text-slate-600">-</span>
@@ -444,7 +392,17 @@ function ParticipantTableRow({
       </td>
 
       <td className="px-4 py-4">
-        Waktu Selesai
+        {lastLogTime ? (
+          <>
+            {new Date(lastLogTime).toLocaleString('id-ID', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}{' '}
+            WIB
+          </>
+        ) : (
+          <span className="text-slate-600">-</span>
+        )}
       </td>
 
       <td className="px-4 py-4">
@@ -455,9 +413,7 @@ function ParticipantTableRow({
               : 'rounded-full bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300'
           }
         >
-          {participant.status
-            ? 'Hadir'
-            : 'Belum validasi'}
+          {participant.status ? 'Hadir' : 'Belum validasi'}
         </span>
       </td>
 

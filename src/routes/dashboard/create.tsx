@@ -20,7 +20,9 @@ export function CreatePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -58,6 +60,21 @@ export function CreatePage() {
         foto,
       })
 
+      // Reset form fields setelah sukses
+      setFormData({
+        name: '',
+        notelp: '',
+        email: '',
+        pekerjaan: '',
+        gate: '1',
+        role_permission: '1',
+      })
+      setFoto(null)
+      setPhotoPreview(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+
       // Berhasil, arahkan ke detail peserta baru
       navigate({
         to: '/dashboard/detail/$idRegistrasi',
@@ -70,13 +87,6 @@ export function CreatePage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
@@ -115,6 +125,7 @@ export function CreatePage() {
                 ref={fileInputRef}
                 accept="image/png, image/jpeg, image/webp"
                 className="hidden"
+                disabled={loading}
                 onChange={handlePhotoSelect}
               />
 
@@ -146,13 +157,14 @@ export function CreatePage() {
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-fit rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-cyan-400 hover:text-cyan-300 transition"
+                    className="w-fit rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-cyan-400 hover:text-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {photoPreview ? 'Ubah Foto' : 'Pilih Foto'}
                   </button>
 
-                  {photoPreview && (
+                  {photoPreview && !loading && (
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
@@ -178,10 +190,11 @@ export function CreatePage() {
                 type="text"
                 name="name"
                 required
+                disabled={loading}
                 value={formData.name}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 placeholder=""
-                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -198,10 +211,11 @@ export function CreatePage() {
                 type="text"
                 name="notelp"
                 required
+                disabled={loading}
                 value={formData.notelp}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 placeholder=""
-                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -211,16 +225,17 @@ export function CreatePage() {
                 htmlFor="email"
                 className="block text-xs font-medium uppercase tracking-wider text-slate-400"
               >
-                Email (Opsional)
+                Email
               </label>
               <input
                 id="email"
                 type="email"
                 name="email"
+                disabled={loading}
                 value={formData.email}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 placeholder=""
-                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -230,32 +245,33 @@ export function CreatePage() {
                 htmlFor="pekerjaan"
                 className="block text-xs font-medium uppercase tracking-wider text-slate-400"
               >
-                Pekerjaan / Instansi (Opsional)
+                Pekerjaan / Instansi
               </label>
               <input
                 id="pekerjaan"
                 type="text"
                 name="pekerjaan"
+                disabled={loading}
                 value={formData.pekerjaan}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 placeholder=""
-                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Gate */}
             <div>
               <label
-                htmlFor="pekerjaan"
                 className="block text-xs font-medium uppercase tracking-wider text-slate-400"
               >
                 Gate
               </label>
               <select
                 name="gate"
+                disabled={loading}
                 value={formData.gate}
                 onChange={handleInputChange}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="1">Gate 1</option>
                 <option value="2">Gate 2</option>
@@ -268,16 +284,16 @@ export function CreatePage() {
             {/* Role Permission */}
             <div>
               <label
-                htmlFor="pekerjaan"
                 className="block text-xs font-medium uppercase tracking-wider text-slate-400"
               >
                 Role Permission
               </label>
               <select
                 name="role_permission"
+                disabled={loading}
                 value={formData.role_permission}
                 onChange={handleInputChange}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="1">Role 1</option>
                 <option value="2">Role 2</option>
@@ -296,7 +312,7 @@ export function CreatePage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
