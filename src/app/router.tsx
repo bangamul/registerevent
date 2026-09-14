@@ -10,6 +10,7 @@ import { LoginPage } from '../routes/login'
 import { ProfilePage } from '../routes/profile'
 import { CheckoutPage } from '../routes/validation/checkout'
 import { ValidationPage } from '../routes/validation'
+import { LandingPage } from '../routes/landing'
 
 const rootRoute = createRootRoute({
   component: () => <AppShell><Outlet /></AppShell>,
@@ -76,13 +77,19 @@ const detailRoute = createRoute({
   beforeLoad: requireLogin,
 })
 
+const landingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'landing/',
+  component: LandingPage,
+})
+
 function requireLogin() {
   if (!getCurrentUserId()) {
     throw redirect({ to: '/login' })
   }
 }
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, formRoute, profileRoute, validationRoute, checkoutRoute, dashboardRoute, createParticipantRoute, detailRoute])
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, formRoute, profileRoute, validationRoute, checkoutRoute, dashboardRoute, createParticipantRoute, detailRoute, landingRoute])
 
 export const router = createRouter({ routeTree })
 
