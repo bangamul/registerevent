@@ -7,4 +7,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: true,   // listen di semua interface (0.0.0.0) → LAN bisa akses
+    port: 5173,
+  },
 })
