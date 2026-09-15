@@ -5,8 +5,8 @@ import { useRegistrationId } from '../../lib/use-registration-id'
 import { findParticipant, type Participant } from './data'
 
 // Tentukan Base API URL (sesuaikan dengan VITE_API_IMAGE / environment variable di projekmu)
-const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost:5173'
-// const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://10.17.17.245:5173'
+// const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost:5173'
+const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://192.168.10.2/trisakti'
 
 // Helper untuk memastikan URL foto valid (baik jika dari CDN/external link maupun endpoint lokal API)
 function getPhotoUrl(foto: string | null | undefined): string | null {

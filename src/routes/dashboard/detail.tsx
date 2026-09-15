@@ -9,8 +9,8 @@ import {
   type LogActivity,
 } from './data'
 
-const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost/trisakti'
-// const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://10.17.17.245/trisakti'
+// const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost/trisakti'
+const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://192.168.10.2/trisakti'
 const LOG_PAGE_SIZE = 5
 
 function getPhotoUrl(foto: string | null | undefined): string | null {
