@@ -1,15 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { findParticipants, getLastActivityLogs, type Participant } from './data'
+import {
+  findParticipants,
+  getLastActivityLogs,
+  getSesiList,
+  matchesSesi,
+  type Participant,
+} from './data'
 
 const PAGE_SIZE = 20
 type SortOption = 'name' | 'latest' | 'oldest'
+type SesiFilter = 'all' | number
 
 export function DashboardPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [lastLogs, setLastLogs] = useState<Record<number, string>>({})
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('name')
+  const [sesiFilter, setSesiFilter] = useState<SesiFilter>('all')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,11 +52,17 @@ export function DashboardPage() {
     void loadData()
   }, [])
 
+  // Daftar sesi buat dropdown filter, dinamis dari role_permission tertinggi
+  const sesiList = useMemo(() => getSesiList(participants), [participants])
+
   const filteredParticipants = [...participants]
     .filter((participant) =>
       participant.name
         .toLowerCase()
         .includes(search.toLowerCase().trim()),
+    )
+    .filter((participant) =>
+      sesiFilter === 'all' ? true : matchesSesi(participant, sesiFilter),
     )
     .sort((first, second) => {
       if (sort === 'name') {
@@ -237,6 +251,23 @@ export function DashboardPage() {
                 placeholder="Cari nama peserta..."
                 className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400 sm:w-64"
               />
+
+              <select
+                value={sesiFilter}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setSesiFilter(value === 'all' ? 'all' : Number(value))
+                  setPage(1)
+                }}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-cyan-400 sm:w-44"
+              >
+                <option value="all">Semua sesi</option>
+                {sesiList.map((sesiKe) => (
+                  <option key={sesiKe} value={sesiKe}>
+                    Sesi {sesiKe}
+                  </option>
+                ))}
+              </select>
 
               <select
                 value={sort}
