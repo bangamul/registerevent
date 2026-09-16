@@ -59,6 +59,34 @@ interface LastLogListResponse {
   data: LastActivityLog[]
 }
 
+// ------------------------------
+// Helper filter sesi (berdasarkan role_permission, tier cascading)
+// ------------------------------
+
+/** Ambil daftar sesi yang tersedia, dari 1 sampai role_permission tertinggi di list. */
+export function getSesiList(participants: Participant[]): number[] {
+  const max = participants.reduce((acc, p) => {
+    const n = parseInt(String(p.role_permission), 10)
+    return Number.isFinite(n) && n > acc ? n : acc
+  }, 1)
+
+  return Array.from({ length: max }, (_, i) => i + 1)
+}
+
+/**
+ * Cek apakah peserta termasuk sesi ke-N.
+ * role_permission bersifat tier/cascading: value 2 berarti ikut Sesi 1 & 2,
+ * jadi peserta match sesi N kalau role_permission-nya >= N.
+ */
+export function matchesSesi(participant: Participant, sesiKe: number): boolean {
+  const n = parseInt(String(participant.role_permission), 10)
+  return Number.isFinite(n) && n >= sesiKe
+}
+
+// ------------------------------
+// API calls
+// ------------------------------
+
 export async function findParticipants(): Promise<Participant[]> {
   const response = await axios.post<ParticipantListResponse>(
     `${API_URL}/UserPesertaList.php`,
@@ -225,7 +253,6 @@ export async function getLastActivityLogs(): Promise<Record<number, string>> {
       `${API_URL}/GetLastLogs.php`
     )
     if (response.data.success && Array.isArray(response.data.data)) {
-      // Ubah array jadi object/map key-value: { [participant_id]: last_created_at }
       const map: Record<number, string> = {}
       response.data.data.forEach((item) => {
         map[item.participant_id] = item.last_created_at
