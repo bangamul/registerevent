@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { createParticipant } from './data'
+import { compressImage } from '../../utils/compressImage'
 
 export function CreatePage() {
   const navigate = useNavigate()
@@ -27,11 +28,17 @@ export function CreatePage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setFoto(file)
-      setPhotoPreview(URL.createObjectURL(file))
+      try {
+        const compressedFile = await compressImage(file)
+        setFoto(compressedFile)
+        setPhotoPreview(URL.createObjectURL(compressedFile))
+      } catch (err) {
+        setFoto(file)
+        setPhotoPreview(URL.createObjectURL(file))
+      }
     }
   }
 

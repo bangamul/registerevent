@@ -8,6 +8,7 @@ import {
   type Participant,
   type LogActivity,
 } from './data'
+import { compressImage } from '../../utils/compressImage'
 
 // const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost/trisakti'
 const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://192.168.10.2/trisakti'
@@ -64,7 +65,7 @@ export function DetailPage() {
         setError('')
         setImageError(false)
 
-        const data = await findParticipant(idRegistrasi)
+        const data = await findParticipant(idRegistrasi as string)
         setParticipant(data)
         setFormData({
           name: data.name,
@@ -112,7 +113,8 @@ export function DetailPage() {
       setUploading(true)
       setImageError(false)
 
-      const updatedData = await updateParticipantPhoto(idRegistrasi, file)
+      const compressedFile = await compressImage(file)
+      const updatedData = await updateParticipantPhoto(idRegistrasi, compressedFile)
       setParticipant(updatedData)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Gagal mengunggah foto.')
