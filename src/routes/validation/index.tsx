@@ -100,6 +100,14 @@ export function ValidationPage() {
           return
         }
 
+        // 💡 BROADCAST KE TV PROFILE AGAR MUNCUL (tanpa peduli waktu_hadir)
+        const channel = new BroadcastChannel('event_checkin_channel')
+        channel.postMessage({
+          type: 'CHECK_IN_SUCCESS',
+          participant: peserta,
+        })
+        channel.close()
+
         // 💡 VALIDASI HAK AKSES SESI 2
         if (activeSession === 2) {
           const rolePerm = String(peserta.role_permission ?? '')
@@ -109,12 +117,14 @@ export function ValidationPage() {
           }
 
           // SCENARIO SESI 2: Catat log & isi waktu_sesi_2 (di backend)
+          saveRegistrationId(currentUser.id, peserta.id_registrasi) // Update layar Profile (TV)
           await checkinParticipant(value, String(currentUser.id), 2)
           setSuccessMessage(`Check-in Sesi 2 Berhasil: ${peserta.name}`)
         } else {
           // SCENARIO SESI 1:
           if (peserta.waktu_hadir) {
             // Sudah pernah validasi (waktu_hadir ada) -> Catat Log Check-in
+            saveRegistrationId(currentUser.id, peserta.id_registrasi) // Update layar Profile (TV)
             await checkinParticipant(value, String(currentUser.id), 1)
             setSuccessMessage(`Check-in Sesi 1 Berhasil: ${peserta.name}`)
           } else {
