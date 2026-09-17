@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
+import { NotFoundPage } from '../routes/NotFound'
 import { getCurrentUserId } from '../lib/auth-session'
 import { AppShell } from '../components/layout/AppShell'
 import { DashboardPage } from '../routes/dashboard'
@@ -91,7 +92,10 @@ function requireLogin() {
 
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, formRoute, profileRoute, validationRoute, checkoutRoute, dashboardRoute, createParticipantRoute, detailRoute, landingRoute])
 
-export const router = createRouter({ routeTree })
+export const router = createRouter({ 
+  routeTree,
+  defaultNotFoundComponent: NotFoundPage,
+})
 
 declare module '@tanstack/react-router' {
   interface Register {
