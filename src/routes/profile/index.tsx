@@ -67,13 +67,9 @@ export function ProfilePage() {
       if (event.data?.type === 'CHECK_IN_SUCCESS') {
         const updatedData: Participant = event.data.participant
 
-        // Pastikan update hanya terjadi jika ID registrasi cocok dengan TV yang sedang aktif
-        setParticipant((prev) => {
-          if (prev && prev.id_registrasi === updatedData.id_registrasi) {
-            return updatedData
-          }
-          return prev
-        })
+        // Selalu update UI TV dengan data yang baru di-scan
+        setParticipant(updatedData)
+        setError('') // Bersihkan error (seperti 404) jika sebelumnya ada
       }
     }
 

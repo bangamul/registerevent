@@ -72,8 +72,20 @@ export function CheckoutPage() {
     setLoading(true)
 
     try {
+      // Ambil data detail peserta terlebih dahulu untuk ditampilkan di TV
+      const { findParticipant } = await import('./data')
+      const peserta = await findParticipant(value)
+      
       await checkoutParticipant(value, String(currentUser.id))
       setSuccessMessage('Clock out berhasil di simpan')
+
+      // Broadcast ke TV agar langsung ganti ke muka peserta ini
+      const channel = new BroadcastChannel('event_checkin_channel')
+      channel.postMessage({
+        type: 'CHECK_IN_SUCCESS',
+        participant: peserta,
+      })
+      channel.close()
     } catch (err) {
       // Tampilkan notifikasi error persis format request
       if (axios.isAxiosError(err) && err.response?.status === 404) {
