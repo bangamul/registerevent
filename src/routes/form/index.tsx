@@ -23,13 +23,15 @@ export function FormPage() {
 
   // 💡 Clean up timer saat komponen unmount untuk menghindari memory leak
   useEffect(() => {
-    let timerId: NodeJS.Timeout
+    let timerId: ReturnType<typeof setTimeout> | undefined
     if (successMessage) {
       timerId = setTimeout(() => {
         navigate({ to: '/validation' })
       }, 3000)
     }
-    return () => clearTimeout(timerId)
+    return () => {
+      if (timerId) clearTimeout(timerId)
+    }
   }, [successMessage, navigate])
 
   async function handleSubmit(
@@ -47,7 +49,7 @@ export function FormPage() {
 
       const updatedParticipant = await checkInParticipant(
         participant.id_registrasi,
-        currentUser.id,
+        Number(currentUser.id),
       )
 
       setParticipant(updatedParticipant)

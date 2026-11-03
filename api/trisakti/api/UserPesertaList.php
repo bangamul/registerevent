@@ -17,9 +17,14 @@ $stmt = $pdo->prepare("
         pekerjaan,
         waktu_hadir,
         waktu_sesi_2,
+        waktu_konfirmasi,
+        waktu_kirim_wa,
+        wa_status,
         gate,
         role_permission,
-        status
+        status,
+        rsvp_status,
+        COALESCE(jalur_undangan, 'blast') as jalur_undangan
     FROM user_peserta
     ORDER BY name ASC
 ");

@@ -5,20 +5,19 @@ header('Content-Type: application/json');
 
 require_once 'db.php';
 
-$idRegistrasi = $_POST['id_registrasi'] ?? '';
+$idRegistrasi = trim($_POST['id_registrasi'] ?? $_GET['id_registrasi'] ?? '');
+$notelp = trim($_POST['notelp'] ?? $_GET['notelp'] ?? '');
 
-if (!$idRegistrasi) {
+if (!$idRegistrasi && !$notelp) {
     http_response_code(400);
-
     echo json_encode([
         'success' => false,
-        'message' => 'ID registrasi wajib diisi'
+        'message' => 'ID registrasi atau nomor telepon wajib diisi'
     ]);
-
     exit;
 }
 
-$stmt = $pdo->prepare("
+$query = "
     SELECT
         id,
         id_registrasi,
@@ -30,26 +29,46 @@ $stmt = $pdo->prepare("
         pekerjaan,
         waktu_hadir,
         waktu_sesi_2,
+        waktu_konfirmasi,
+        waktu_kirim_wa,
+        wa_status,
         gate,
         role_permission,
-        status
+        status,
+        rsvp_status,
+        COALESCE(jalur_undangan, 'blast') as jalur_undangan
     FROM user_peserta
-    WHERE id_registrasi = ?
-    LIMIT 1
-");
+    WHERE 
+";
 
-$stmt->execute([$idRegistrasi]);
+$params = [];
+if ($idRegistrasi !== '') {
+    $query .= "id_registrasi = ? LIMIT 1";
+    $params[] = $idRegistrasi;
+} else {
+    $cleanPhone = preg_replace('/\D/', '', $notelp);
+    $variants = array_unique(array_filter([
+        $notelp,
+        $cleanPhone,
+        str_starts_with($cleanPhone, '0') ? '62' . substr($cleanPhone, 1) : '',
+        str_starts_with($cleanPhone, '62') ? '0' . substr($cleanPhone, 2) : '',
+    ]));
+    $placeholders = implode(',', array_fill(0, count($variants), '?'));
+    $query .= "notelp IN ($placeholders) LIMIT 1";
+    $params = array_values($variants);
+}
+
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
 
 $peserta = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$peserta) {
     http_response_code(404);
-
     echo json_encode([
         'success' => false,
         'message' => 'Data peserta tidak ditemukan'
     ]);
-
     exit;
 }
 
