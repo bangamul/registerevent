@@ -15,9 +15,11 @@ export type Participant = {
   pekerjaan: string | null
   waktu_hadir: string | null
   waktu_sesi_2: string | null
+  waktu_konfirmasi?: string | null
   gate?: number | string | null
   role_permission?: number | string | null
   status: boolean
+  rsvp_status?: 'pending' | 'confirmed' | 'declined' | string
 }
 
 interface ParticipantResponse {
@@ -206,4 +208,58 @@ export async function getParticipantLogs(params: {
   }
 
   return response.data.data
+}
+
+export async function checkExistingParticipant(phoneOrId: string): Promise<Participant | null> {
+  const formData = new FormData()
+  if (phoneOrId.startsWith('REG-')) {
+    formData.append('id_registrasi', phoneOrId)
+  } else {
+    formData.append('notelp', phoneOrId)
+  }
+
+  try {
+    const response = await axios.post<ParticipantResponse>(
+      `${API_URL}/UserPeserta.php`,
+      formData,
+    )
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export async function confirmAttendance(data: {
+  notelp: string
+  id_registrasi?: string
+  name?: string
+  action?: 'confirm' | 'decline'
+  email?: string
+  pekerjaan?: string
+  gate?: string
+  role_permission?: string
+}): Promise<Participant | null> {
+  const formData = new FormData()
+  formData.append('notelp', data.notelp)
+  if (data.id_registrasi) formData.append('id_registrasi', data.id_registrasi)
+  if (data.name) formData.append('name', data.name)
+  if (data.action) formData.append('action', data.action)
+  if (data.email) formData.append('email', data.email)
+  if (data.pekerjaan) formData.append('pekerjaan', data.pekerjaan)
+  if (data.gate) formData.append('gate', data.gate)
+  if (data.role_permission) formData.append('role_permission', data.role_permission)
+
+  const response = await axios.post<ParticipantResponse>(
+    `${API_URL}/KonfirmasiPeserta.php`,
+    formData,
+  )
+
+  if (!response.data.success) {
+    throw new Error(response.data.message || 'Gagal memproses konfirmasi kehadiran.')
+  }
+
+  return response.data.data ?? null
 }

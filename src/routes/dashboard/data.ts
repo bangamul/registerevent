@@ -15,9 +15,14 @@ export type Participant = {
   pekerjaan: string | null
   waktu_hadir: string | null
   waktu_sesi_2: string | null
+  waktu_konfirmasi?: string | null
+  waktu_kirim_wa?: string | null
+  wa_status?: 'sent' | 'failed' | 'unsent' | string | null
   gate?: number | string | null
   role_permission?: number | string | null
   status: boolean
+  rsvp_status?: 'pending' | 'confirmed' | 'declined' | string
+  jalur_undangan?: 'blast' | 'manual' | string
 }
 
 interface ParticipantResponse {
@@ -264,3 +269,84 @@ export async function getLastActivityLogs(): Promise<Record<number, string>> {
     return {}
   }
 }
+
+export interface DailyReportSummary {
+  total_peserta: number
+  wa_terkirim: number
+  wa_belum_terkirim: number
+  wa_persentase: number
+  rsvp_hadir: number
+  rsvp_berhalangan: number
+  rsvp_pending: number
+  hadir_venue: number
+  belum_hadir_venue: number
+  jalur_blast?: number
+  jalur_manual?: number
+}
+
+export interface DailyBreakdownItem {
+  tanggal: string
+  wa_terkirim: number
+  rsvp_hadir: number
+}
+
+export interface RecentLogItem {
+  id: number
+  activity: string
+  description: string
+  created_at: string
+  participant_name: string | null
+  participant_phone: string | null
+  id_registrasi: string | null
+}
+
+export interface LaporanHarianResponse {
+  success: boolean
+  summary: DailyReportSummary
+  daily_breakdown: DailyBreakdownItem[]
+  recent_logs: RecentLogItem[]
+  generated_at: string
+}
+
+export async function fetchLaporanHarian(): Promise<LaporanHarianResponse> {
+  const response = await axios.get<LaporanHarianResponse>(`${API_URL}/LaporanHarian.php`)
+  if (!response.data.success) {
+    throw new Error('Gagal memuat laporan harian.')
+  }
+  return response.data
+}
+
+export async function updateJalurUndangan(
+  idOrIds: number | number[] | string,
+  jalur: 'blast' | 'manual',
+): Promise<void> {
+  const formData = new FormData()
+  if (Array.isArray(idOrIds)) {
+    formData.append('ids', idOrIds.join(','))
+  } else if (typeof idOrIds === 'number') {
+    formData.append('id', String(idOrIds))
+  } else {
+    formData.append('id_registrasi', idOrIds)
+  }
+  formData.append('jalur', jalur)
+
+  const response = await axios.post(`${API_URL}/UpdateJalurUndangan.php`, formData)
+  if (!response.data.success) {
+    throw new Error(response.data.message || 'Gagal mengubah jalur undangan')
+  }
+}
+
+export async function updateWaStatusManual(
+  idRegistrasi: string,
+  status: 'manual_sent' | 'sent' | 'unsent',
+): Promise<void> {
+  const formData = new FormData()
+  formData.append('id_registrasi', idRegistrasi)
+  formData.append('status', status)
+
+  const response = await axios.post(`${API_URL}/UpdateWaStatus.php`, formData)
+  if (!response.data.success) {
+    throw new Error(response.data.message || 'Gagal memperbarui status WA')
+  }
+}
+

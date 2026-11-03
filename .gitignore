@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+wa-service/node_modules
+wa-service/auth_session
 
 # Editor directories and files
 .vscode/*

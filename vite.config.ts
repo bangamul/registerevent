@@ -8,7 +8,14 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    host: true,   // listen di semua interface (0.0.0.0) → LAN bisa akses
+    host: true,
     port: 5173,
+    allowedHosts: true,
+    proxy: {
+      '/trisakti': {
+        target: 'http://localhost',
+        changeOrigin: true,
+      },
+    },
   },
 })
