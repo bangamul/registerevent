@@ -471,12 +471,12 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* MAIN CONTAINER: SPLIT 2-COLUMN LAYOUT (KV POSTER & FORM) */}
-      <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+      {/* MAIN CONTAINER: HORIZONTAL 1 BARIS DI DESKTOP, VERTIKAL 1 BARIS DI MOBILE */}
+      <div className="relative z-10 mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:py-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           
-          {/* KOLOM KIRI: TAMPILAN RESMI KEY VISUAL (KV) UNDANGAN */}
-          <section className="lg:col-span-5">
+          {/* POSTER 1: UNDANGAN RESMI */}
+          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[28%] xl:w-[27%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
               <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
                 <img
@@ -487,10 +487,24 @@ export function LandingPage() {
                 <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* KOLOM KANAN: FORMULIR KONFIRMASI (RSVP) & AUTOREADING DATABASE */}
-          <section className="lg:col-span-7">
+          {/* POSTER 2: AGENDA ACARA */}
+          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[28%] xl:w-[27%] mx-auto lg:mx-0 shrink-0">
+            <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
+              <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
+                <img
+                  src="/agenda.jpg"
+                  alt="Agenda Acara Peluncuran Buku Timah, Manusia, dan Masa Depan"
+                  className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
+                />
+                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
+              </div>
+            </div>
+          </div>
+
+          {/* FORMULIR KONFIRMASI (RSVP) */}
+          <section className="w-full max-w-lg lg:max-w-none lg:flex-1 mx-auto lg:mx-0">
             <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8 space-y-6">
               
               {/* Title Section */}
@@ -674,7 +688,6 @@ export function LandingPage() {
 
             </div>
           </section>
-
         </div>
       </div>
 
