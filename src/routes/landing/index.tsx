@@ -25,7 +25,6 @@ export function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [declining, setDeclining] = useState(false)
   const [error, setError] = useState('')
-  const [infoMessage, setInfoMessage] = useState('')
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
@@ -118,7 +117,6 @@ export function LandingPage() {
   function handleNameChange(val: string) {
     setInputName(val)
     setError('')
-    setInfoMessage('')
 
     // Reset pilihan jika input diubah dari nama terpilih sebelumnya
     if (selectedParticipant && selectedParticipant.name.toLowerCase() !== val.toLowerCase()) {
@@ -159,13 +157,6 @@ export function LandingPage() {
     setExistingParticipant(p)
     setShowSuggestions(false)
     setError('')
-
-    // Jika sudah pernah konfirmasi, beri notifikasi proteksi
-    if (p.rsvp_status === 'confirmed' || p.waktu_konfirmasi) {
-      setInfoMessage(`Halo Bapak/Ibu ${p.name}, konfirmasi kehadiran Anda telah tercatat di sistem. E-Ticket QR Code Anda sudah terbit.`)
-    } else {
-      setInfoMessage('')
-    }
   }
 
   // Reset pilihan untuk ganti nama
@@ -175,7 +166,6 @@ export function LandingPage() {
     setSelectedParticipant(null)
     setExistingParticipant(null)
     setError('')
-    setInfoMessage('')
   }
 
   // Aksi Konfirmasi Hadir
@@ -438,7 +428,8 @@ export function LandingPage() {
   }
 
   // TAMPILAN 4: FORMULIR UTAMA DENGAN KEY VISUAL (KV) RESMI & PENGAMANAN DOUBLE RESERVASI
-  const isAlreadyConfirmed = selectedParticipant?.rsvp_status === 'confirmed' || Boolean(selectedParticipant?.waktu_konfirmasi)
+  const isConfirmedHadir = selectedParticipant?.rsvp_status === 'confirmed'
+  const isDeclined = selectedParticipant?.rsvp_status === 'declined'
 
   return (
     <main className="relative min-h-screen bg-[#070b14] text-white">
@@ -472,11 +463,11 @@ export function LandingPage() {
       </header>
 
       {/* MAIN CONTAINER: HORIZONTAL 1 BARIS DI DESKTOP, VERTIKAL 1 BARIS DI MOBILE */}
-      <div className="relative z-10 mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:py-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+      <div className="relative z-10 mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:py-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-4 xl:gap-5">
           
           {/* POSTER 1: UNDANGAN RESMI */}
-          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[28%] xl:w-[27%] mx-auto lg:mx-0 shrink-0">
+          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
               <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
                 <img
@@ -489,8 +480,22 @@ export function LandingPage() {
             </div>
           </div>
 
-          {/* POSTER 2: AGENDA ACARA */}
-          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[28%] xl:w-[27%] mx-auto lg:mx-0 shrink-0">
+          {/* POSTER 2: KATA PENGANTAR */}
+          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
+            <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
+              <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
+                <img
+                  src="/kata-pengantar.jpg"
+                  alt="Kata Pengantar Menteri ESDM RI Peluncuran Buku Timah, Manusia, dan Masa Depan"
+                  className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
+                />
+                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
+              </div>
+            </div>
+          </div>
+
+          {/* POSTER 3: AGENDA ACARA */}
+          <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
               <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
                 <img
@@ -525,25 +530,50 @@ export function LandingPage() {
                 </div>
               )}
 
-              {/* Info Notice Terpadu dengan Tombol E-Ticket QR Code */}
-              {infoMessage && (
+              {/* Info Notice Jika Sudah Pernah Konfirmasi Hadir (E-Ticket) */}
+              {isConfirmedHadir && selectedParticipant && (
                 <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/40 p-4 text-xs text-emerald-200 animate-fadeIn space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
+                      Status: Konfirmasi Hadir
+                    </span>
+                  </div>
                   <div>
                     <p className="font-bold text-emerald-300">Informasi Registrasi:</p>
-                    <p className="mt-0.5 leading-relaxed text-slate-200">{infoMessage}</p>
+                    <p className="mt-0.5 leading-relaxed text-slate-200">
+                      Halo Bapak/Ibu <b className="text-white">{selectedParticipant.name}</b>, konfirmasi kehadiran Anda telah tercatat di sistem. E-Ticket QR Code Anda sudah terbit.
+                    </p>
                   </div>
 
-                  {(selectedParticipant || existingParticipant) && (
-                    <div className="pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setView('ticket')}
-                        className="w-full rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:opacity-95 transition shadow-lg active:scale-95 flex items-center justify-center"
-                      >
-                        Buka / Tampilkan E-Ticket QR Code Saya
-                      </button>
-                    </div>
-                  )}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setView('ticket')}
+                      className="w-full rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-5 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:opacity-95 transition shadow-lg active:scale-95 flex items-center justify-center"
+                    >
+                      Buka / Tampilkan E-Ticket QR Code Saya
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Info Notice Jika Statusnya Berhalangan Hadir */}
+              {isDeclined && selectedParticipant && (
+                <div className="rounded-2xl border border-rose-500/40 bg-rose-950/40 p-4 text-xs text-rose-200 animate-fadeIn space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-300 uppercase tracking-wider">
+                      Status: Berhalangan Hadir
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-rose-300">Status Konfirmasi Anda:</p>
+                    <p className="mt-0.5 leading-relaxed text-slate-200">
+                      Bapak/Ibu <b className="text-white">{selectedParticipant.name}</b>, Anda tercatat <b>Berhalangan Hadir</b> pada acara ini.
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-amber-300 pt-1">
+                    Berubah pikiran dan ingin hadir? Silakan klik tombol <b>Ubah Menjadi Hadir</b> di bawah untuk menerbitkan E-Ticket QR Code.
+                  </p>
                 </div>
               )}
 
@@ -606,10 +636,11 @@ export function LandingPage() {
                           <p className="text-sm font-bold text-white group-hover:text-amber-300 transition">
                             {p.name}
                           </p>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {p.pekerjaan ? `${p.pekerjaan} • ` : ''}
-                            <span className="font-mono text-amber-300/80">{p.notelp}</span>
-                          </p>
+                          {p.pekerjaan && (
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {p.pekerjaan}
+                            </p>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -649,8 +680,8 @@ export function LandingPage() {
                 </div>
               </div>
 
-              {/* ACTION BUTTONS (HANYA MUNCUL JIKA BELUM KONFIRMASI) */}
-              {!isAlreadyConfirmed && (
+              {/* ACTION BUTTONS (HANYA MUNCUL JIKA BELUM KONFIRMASI HADIR) */}
+              {!isConfirmedHadir && (
                 <div className="space-y-3 pt-2">
                   <button
                     type="button"
@@ -663,19 +694,23 @@ export function LandingPage() {
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
                         <span>Memproses Verifikasi...</span>
                       </>
+                    ) : isDeclined ? (
+                      'Ubah Menjadi Hadir & Terbitkan Tiket QR'
                     ) : (
                       'Konfirmasi Hadir & Terbitkan Tiket QR'
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    disabled={loading || declining}
-                    onClick={handleDeclinePresence}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
-                  >
-                    {declining ? 'Mencatat...' : 'Mohon Maaf, Berhalangan Hadir'}
-                  </button>
+                  {!isDeclined && (
+                    <button
+                      type="button"
+                      disabled={loading || declining}
+                      onClick={handleDeclinePresence}
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {declining ? 'Mencatat...' : 'Mohon Maaf, Berhalangan Hadir'}
+                    </button>
+                  )}
                 </div>
               )}
 
