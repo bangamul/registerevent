@@ -24,7 +24,10 @@ $stmt = $pdo->prepare("
         role_permission,
         status,
         rsvp_status,
-        COALESCE(jalur_undangan, 'blast') as jalur_undangan
+        COALESCE(jalur_undangan, 'blast') as jalur_undangan,
+        waktu_souvenir,
+        COALESCE(souvenir_status, 'unclaimed') as souvenir_status,
+        souvenir_petugas
     FROM user_peserta
     ORDER BY name ASC
 ");

@@ -11,6 +11,7 @@ import { LoginPage } from '../routes/login'
 import { ProfilePage } from '../routes/profile'
 import { CheckoutPage } from '../routes/validation/checkout'
 import { ValidationPage } from '../routes/validation'
+import { SouvenirPage } from '../routes/validation/souvenir'
 import { LandingPage } from '../routes/landing'
 
 const rootRoute = createRootRoute({
@@ -57,6 +58,13 @@ const checkoutRoute = createRoute({
   beforeLoad: requireLogin,
 })
 
+const souvenirRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'validation/souvenir',
+  component: SouvenirPage,
+  beforeLoad: requireLogin,
+})
+
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'dashboard',
@@ -90,7 +98,19 @@ function requireLogin() {
   }
 }
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, formRoute, profileRoute, validationRoute, checkoutRoute, dashboardRoute, createParticipantRoute, detailRoute, landingRoute])
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  formRoute,
+  profileRoute,
+  validationRoute,
+  checkoutRoute,
+  souvenirRoute,
+  dashboardRoute,
+  createParticipantRoute,
+  detailRoute,
+  landingRoute,
+])
 
 export const router = createRouter({ 
   routeTree,

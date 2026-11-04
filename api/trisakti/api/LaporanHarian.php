@@ -18,7 +18,9 @@ try {
             SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as hadir_venue,
             SUM(CASE WHEN status = 0 OR status IS NULL THEN 1 ELSE 0 END) as belum_hadir_venue,
             SUM(CASE WHEN jalur_undangan = 'manual' THEN 1 ELSE 0 END) as jalur_manual,
-            SUM(CASE WHEN jalur_undangan = 'blast' OR jalur_undangan IS NULL THEN 1 ELSE 0 END) as jalur_blast
+            SUM(CASE WHEN jalur_undangan = 'blast' OR jalur_undangan IS NULL THEN 1 ELSE 0 END) as jalur_blast,
+            SUM(CASE WHEN souvenir_status = 'claimed' OR waktu_souvenir IS NOT NULL THEN 1 ELSE 0 END) as souvenir_diambil,
+            SUM(CASE WHEN (souvenir_status != 'claimed' OR souvenir_status IS NULL) AND waktu_souvenir IS NULL THEN 1 ELSE 0 END) as souvenir_belum_diambil
         FROM user_peserta
     ");
     $summary = $stmtSummary->fetch(PDO::FETCH_ASSOC);
@@ -38,6 +40,8 @@ try {
     $summary['belum_hadir_venue'] = (int) ($summary['belum_hadir_venue'] ?? 0);
     $summary['jalur_manual'] = (int) ($summary['jalur_manual'] ?? 0);
     $summary['jalur_blast'] = (int) ($summary['jalur_blast'] ?? 0);
+    $summary['souvenir_diambil'] = (int) ($summary['souvenir_diambil'] ?? 0);
+    $summary['souvenir_belum_diambil'] = (int) ($summary['souvenir_belum_diambil'] ?? 0);
 
     // 2. Breakdown Pengiriman & RSVP Per Tanggal
     $stmtDailyWa = $pdo->query("

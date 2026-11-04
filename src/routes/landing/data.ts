@@ -20,6 +20,8 @@ export type Participant = {
   role_permission?: number | string | null
   status: boolean
   rsvp_status?: 'pending' | 'confirmed' | 'declined' | string
+  waktu_souvenir?: string | null
+  souvenir_status?: string | null
 }
 
 interface ParticipantResponse {
@@ -62,6 +64,22 @@ export async function findParticipants(): Promise<Participant[]> {
   }
 
   return response.data.data
+}
+
+export async function searchParticipantsByName(query: string): Promise<Participant[]> {
+  if (!query || query.trim().length === 0) return []
+  try {
+    const response = await axios.get<{ success: boolean; data: Participant[] }>(
+      `${API_URL}/SearchPesertaNama.php`,
+      { params: { q: query.trim() } }
+    )
+    if (!response.data.success || !Array.isArray(response.data.data)) {
+      return []
+    }
+    return response.data.data
+  } catch {
+    return []
+  }
 }
 
 async function postParticipant(
@@ -232,6 +250,13 @@ export async function checkExistingParticipant(phoneOrId: string): Promise<Parti
   }
 }
 
+export interface ConfirmResult {
+  success: boolean
+  already_confirmed?: boolean
+  message: string
+  data?: Participant | null
+}
+
 export async function confirmAttendance(data: {
   notelp: string
   id_registrasi?: string
@@ -241,7 +266,7 @@ export async function confirmAttendance(data: {
   pekerjaan?: string
   gate?: string
   role_permission?: string
-}): Promise<Participant | null> {
+}): Promise<ConfirmResult> {
   const formData = new FormData()
   formData.append('notelp', data.notelp)
   if (data.id_registrasi) formData.append('id_registrasi', data.id_registrasi)
@@ -252,7 +277,7 @@ export async function confirmAttendance(data: {
   if (data.gate) formData.append('gate', data.gate)
   if (data.role_permission) formData.append('role_permission', data.role_permission)
 
-  const response = await axios.post<ParticipantResponse>(
+  const response = await axios.post<ConfirmResult>(
     `${API_URL}/KonfirmasiPeserta.php`,
     formData,
   )
@@ -261,5 +286,5 @@ export async function confirmAttendance(data: {
     throw new Error(response.data.message || 'Gagal memproses konfirmasi kehadiran.')
   }
 
-  return response.data.data ?? null
+  return response.data
 }

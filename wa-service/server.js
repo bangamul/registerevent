@@ -92,9 +92,8 @@ export function createRegistrationToken(data) {
 
 export function compileTemplate(template, data, webBaseUrl = 'http://localhost:5173') {
   let message = template;
-  const token = createRegistrationToken(data);
   const cleanBase = (webBaseUrl || 'http://localhost:5173').replace(/\/$/, '');
-  const regUrl = `${cleanBase}/landing?token=${token}`;
+  const regUrl = `${cleanBase}/landing`;
 
   message = message.replace(/{{\s*(url_registrasi|link_registrasi)\s*}}/gi, regUrl);
   message = message.replace(/{{\s*(name|nama)\s*}}/gi, data.name || '');
@@ -338,6 +337,20 @@ app.post('/api/test-send', async (req, res) => {
     }
 
     await sock.sendPresenceUpdate('paused', jid);
+
+    // Update status ke database jika nomor tersebut adalah peserta
+    try {
+      const formData = new URLSearchParams();
+      formData.append('notelp', formattedPhone);
+      formData.append('status', 'sent');
+
+      fetch('http://localhost/trisakti/api/UpdateWaStatus.php', {
+        method: 'POST',
+        body: formData
+      }).catch((err) => console.error('[WA Service] Gagal update status test-send ke DB:', err.message));
+    } catch {
+      // ignore
+    }
 
     res.json({ success: true, message: `Pesan uji coba berhasil terkirim ke ${phone}` });
   } catch (error) {

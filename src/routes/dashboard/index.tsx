@@ -80,6 +80,12 @@ export function DashboardPage() {
 
   useEffect(() => {
     void loadData()
+
+    function onFocus() {
+      void loadData()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   // Simpan domain publik jika diubah
@@ -149,6 +155,9 @@ export function DashboardPage() {
   const waSentCount = participants.filter((p) => p.wa_status === 'sent').length
   const blastCount = participants.filter((p) => p.jalur_undangan !== 'manual').length
   const manualCount = participants.filter((p) => p.jalur_undangan === 'manual').length
+  const souvenirClaimedCount = participants.filter(
+    (p) => p.souvenir_status === 'claimed' || Boolean(p.waktu_souvenir),
+  ).length
 
   // Checkbox multi-select
   function toggleSelect(id: number) {
@@ -178,7 +187,7 @@ export function DashboardPage() {
       )
       showToast(
         `Berhasil mengubah ${selectedIds.length} peserta ke Jalur ${
-          jalur === 'manual' ? '👑 VIP Manual (Klien)' : '🚀 Blast Sistem'
+          jalur === 'manual' ? 'VIP Manual (Klien)' : 'Blast Sistem'
         }`,
       )
       setSelectedIds([])
@@ -199,7 +208,7 @@ export function DashboardPage() {
       )
       showToast(
         `${participant.name} dialihkan ke Jalur ${
-          newJalur === 'manual' ? '👑 VIP Manual Klien' : '🚀 Blast Sistem'
+          newJalur === 'manual' ? 'VIP Manual Klien' : 'Blast Sistem'
         }`,
       )
     } catch (err) {
@@ -207,45 +216,14 @@ export function DashboardPage() {
     }
   }
 
-  // Salin Link RSVP unik
+  // Salin Link RSVP Global
   function handleCopyRsvpLink(participant: Participant) {
-    const rsvpUrl = `${publicOrigin}/landing?idRegistrasi=${participant.id_registrasi}`
+    const rsvpUrl = `${publicOrigin}/landing`
     navigator.clipboard.writeText(rsvpUrl).then(() => {
       setCopiedId(participant.id)
-      showToast(`✓ Link RSVP ${participant.name} berhasil disalin!`)
+      showToast(`✓ Link RSVP Resmi (${participant.name}) berhasil disalin!`)
       setTimeout(() => setCopiedId(null), 2500)
     })
-  }
-
-  // Buka WhatsApp Web dengan template personal
-  function handleOpenWaWeb(participant: Participant) {
-    const rawPhone = participant.notelp || ''
-    const cleanPhone = rawPhone.replace(/\D/g, '')
-    const phone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone
-    const rsvpUrl = `${publicOrigin}/landing?idRegistrasi=${participant.id_registrasi}`
-
-    const text = `Kepada Yth.
-*${participant.name}*
-
-Dengan hormat kami mengundang Bapak/Ibu untuk hadir pada acara:
-
-*PELUNCURAN BUKU: TIMAH, MANUSIA, DAN MASA DEPAN*
-_Menata Ulang Arah Pembangunan Hijau dan Digital_
-
-📅 *Hari/Tanggal:* Senin, 9 November 2026
-⏰ *Waktu:* 15.00 - 19.00 WIB
-📍 *Tempat:* Sumba Room, Hotel Borobudur Jakarta
-
-Mohon kesediaan Bapak/Ibu untuk melakukan konfirmasi kehadiran & pengambilan E-Ticket QR Code melalui tautan resmi di bawah ini:
-🔗 ${rsvpUrl}
-
-Terima kasih atas perhatian dan kehadiran Bapak/Ibu.
-
-Salam hormat,
-*Panitia Penyelenggara*`
-
-    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
-    window.open(waUrl, '_blank')
   }
 
   // Tandai WA Terkirim Manual
@@ -293,6 +271,8 @@ Salam hormat,
       'Waktu Kirim WA',
       'Status RSVP',
       'Status Hadir Venue',
+      'Status Souvenir',
+      'Waktu Ambil Souvenir',
       'URL Konfirmasi RSVP (Tamu)',
       'Teks Undangan WA (Siap Kirim)',
       'Klik Kirim WhatsApp Web',
@@ -305,7 +285,7 @@ Salam hormat,
       const rawPhone = p.notelp || ''
       const cleanPhone = rawPhone.replace(/\D/g, '')
       const phone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone
-      const rsvpUrl = `${publicOrigin}/landing?idRegistrasi=${p.id_registrasi}`
+      const rsvpUrl = `${publicOrigin}/landing`
       const isManual = p.jalur_undangan === 'manual'
       const draftText = `Kepada Yth. *${p.name}*, kami mengundang Bapak/Ibu hadir pada *Peluncuran Buku: Timah, Manusia, dan Masa Depan* (Senin, 9 Nov 2026 di Hotel Borobudur). Mohon konfirmasi kehadiran Anda di tautan resmi: ${rsvpUrl}`
       const waLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(draftText)}`
@@ -327,6 +307,8 @@ Salam hormat,
             ? '✗ Berhalangan'
             : 'Menunggu RSVP',
         p.status ? 'Hadir di Venue' : 'Belum Validasi',
+        p.souvenir_status === 'claimed' || p.waktu_souvenir ? '✓ Sudah Ambil' : 'Belum Ambil',
+        p.waktu_souvenir ? new Date(p.waktu_souvenir).toLocaleString('id-ID') : '-',
         rsvpUrl,
         draftText,
         waLink,
@@ -350,6 +332,8 @@ Salam hormat,
       { wch: 22 }, // Waktu Kirim WA
       { wch: 22 }, // Status RSVP
       { wch: 20 }, // Status Hadir Venue
+      { wch: 18 }, // Status Souvenir
+      { wch: 22 }, // Waktu Ambil Souvenir
       { wch: 45 }, // URL Konfirmasi RSVP
       { wch: 60 }, // Teks Undangan WA
       { wch: 32 }, // Klik Kirim WhatsApp Web
@@ -365,14 +349,14 @@ Salam hormat,
       const draftText = `Kepada Yth. *${p.name}*, kami mengundang Bapak/Ibu hadir pada *Peluncuran Buku: Timah, Manusia, dan Masa Depan* (Senin, 9 Nov 2026 di Hotel Borobudur). Mohon konfirmasi kehadiran Anda di tautan resmi: ${rsvpUrl}`
       const waLink = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(draftText)}`
 
-      // Kolom M (index 12): URL Konfirmasi RSVP
-      const rsvpRef = XLSX.utils.encode_cell({ r: rowIndex, c: 12 })
+      // Kolom O (index 14): URL Konfirmasi RSVP
+      const rsvpRef = XLSX.utils.encode_cell({ r: rowIndex, c: 14 })
       if (ws[rsvpRef]) {
         ws[rsvpRef].l = { Target: rsvpUrl, Tooltip: 'Buka Link Konfirmasi Tamu' }
       }
 
-      // Kolom O (index 14): Link WhatsApp Web
-      const waRef = XLSX.utils.encode_cell({ r: rowIndex, c: 14 })
+      // Kolom Q (index 16): Link WhatsApp Web
+      const waRef = XLSX.utils.encode_cell({ r: rowIndex, c: 16 })
       if (ws[waRef]) {
         ws[waRef].v = '💬 Klik Buka WhatsApp Web'
         ws[waRef].l = { Target: waLink, Tooltip: 'Kirim via WhatsApp Web' }
@@ -381,14 +365,14 @@ Salam hormat,
 
     // Buat workbook
     const wb = XLSX.utils.book_new()
-    const sheetName = targetMode === 'manual' ? '50 VIP Manual Klien' : 'Data Peserta Event'
+    const sheetName = targetMode === 'manual' ? 'VIP Manual Klien' : 'Data Peserta Event'
     XLSX.utils.book_append_sheet(wb, ws, sheetName)
 
     // Nama file .xlsx asli
     const timestamp = new Date().toISOString().slice(0, 10)
     const filename =
       targetMode === 'manual'
-        ? `Undangan_50_VIP_Manual_Klien_${timestamp}.xlsx`
+        ? `Undangan_VIP_Manual_Klien_${timestamp}.xlsx`
         : `Data_Peserta_Event_${timestamp}.xlsx`
 
     // Tulis dan unduh file binary .xlsx
@@ -428,10 +412,6 @@ Salam hormat,
             <h1 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
               Dashboard Peserta
             </h1>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Peluncuran Buku Timah, Manusia, dan Masa Depan • Total {participants.length} Tamu
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -443,9 +423,8 @@ Salam hormat,
                 setIsDomainModalOpen(true)
               }}
               title="Atur domain publik untuk generate link RSVP"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-mono text-cyan-300 hover:border-cyan-500 hover:bg-slate-800 transition"
+              className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-mono text-cyan-300 hover:border-cyan-500 hover:bg-slate-800 transition"
             >
-              <span>🌐</span>
               <span className="max-w-[140px] truncate sm:max-w-none">{publicOrigin.replace(/^https?:\/\//, '')}</span>
             </button>
 
@@ -453,12 +432,19 @@ Salam hormat,
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/20 px-4 py-2.5 text-sm font-semibold text-cyan-300 transition hover:border-cyan-500/60 hover:bg-cyan-500/30 active:scale-95"
+              className="inline-flex items-center justify-center rounded-xl border border-cyan-500/40 bg-cyan-500/20 px-4 py-2.5 text-sm font-semibold text-cyan-300 transition hover:border-cyan-500/60 hover:bg-cyan-500/30 active:scale-95"
             >
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
-              </svg>
               Laporan Harian
+            </button>
+
+            {/* Tombol Segarkan Data */}
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              title="Segarkan data terbaru dari database"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-slate-500 hover:text-white transition active:scale-95"
+            >
+              <span>{loading ? 'Memuat...' : 'Segarkan'}</span>
             </button>
 
             {/* Tombol Blast WA */}
@@ -478,37 +464,43 @@ Salam hormat,
               <button
                 type="button"
                 onClick={() => exportToExcel('manual')}
-                title="Download Excel khusus peserta VIP Manual yang akan dikirim sendiri oleh klien"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-purple-500/40 bg-purple-500/20 px-3.5 py-2.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 transition active:scale-95"
+                title={`Download Excel ${manualCount} peserta VIP Manual yang akan dikirim sendiri oleh klien`}
+                className="inline-flex items-center justify-center rounded-xl border border-purple-500/40 bg-purple-500/20 px-3.5 py-2.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 transition active:scale-95"
               >
-                <span>👑</span> Export 50 VIP Klien
+                Export VIP Klien {manualCount > 0 ? `(${manualCount})` : ''}
               </button>
 
               <button
                 type="button"
                 onClick={() => exportToExcel('all')}
                 title="Download Excel seluruh database peserta"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition active:scale-95"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition active:scale-95"
               >
-                <span>📥</span> Export Semua
+                Export Semua
               </button>
             </div>
+
+            {/* Tombol Meja Souvenir */}
+            <Link
+              to="/validation/souvenir"
+              title="Buka Station Scan QR Meja Pengambilan Souvenir"
+              className="inline-flex items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/20 px-3.5 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition active:scale-95"
+            >
+              Meja Souvenir
+            </Link>
 
             {/* Tambah Peserta */}
             <Link
               to="/dashboard/create"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95"
+              className="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95"
             >
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-              </svg>
               Tambah
             </Link>
           </div>
         </header>
 
         {/* Kartu Ringkasan Metrik */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <SummaryCard
             label="Total Undangan"
             value={participants.length}
@@ -532,6 +524,12 @@ Salam hormat,
             value={presentCount}
             sub="Tiba di lokasi acara"
             tone="amber"
+          />
+          <SummaryCard
+            label="Souvenir Terdistribusi"
+            value={souvenirClaimedCount}
+            sub={`${participants.length - souvenirClaimedCount} belum ambil`}
+            tone="purple"
           />
         </section>
 
@@ -567,8 +565,8 @@ Salam hormat,
                 className="w-full sm:w-44 rounded-xl border border-purple-500/40 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-purple-300 outline-none focus:border-purple-400"
               >
                 <option value="all">Semua Jalur ({participants.length})</option>
-                <option value="blast">🚀 Jalur Blast ({blastCount})</option>
-                <option value="manual">👑 VIP Manual Klien ({manualCount})</option>
+                <option value="blast">Jalur Blast ({blastCount})</option>
+                <option value="manual">VIP Manual Klien ({manualCount})</option>
               </select>
 
               {/* Filter Status WA */}
@@ -653,7 +651,7 @@ Salam hormat,
                   onClick={() => handleBulkSetJalur('manual')}
                   className="rounded-xl border border-purple-500/40 bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 transition"
                 >
-                  👑 Tandai VIP Manual Klien ({selectedIds.length})
+                  Tandai VIP Manual Klien ({selectedIds.length})
                 </button>
 
                 <button
@@ -661,7 +659,7 @@ Salam hormat,
                   onClick={() => handleBulkSetJalur('blast')}
                   className="rounded-xl border border-cyan-500/40 bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/30 transition"
                 >
-                  🚀 Kembalikan ke Jalur Blast ({selectedIds.length})
+                  Kembalikan ke Jalur Blast ({selectedIds.length})
                 </button>
 
                 <button
@@ -720,7 +718,6 @@ Salam hormat,
                         onToggleSelect={toggleSelect}
                         onToggleJalur={handleToggleJalur}
                         onCopyLink={handleCopyRsvpLink}
-                        onOpenWa={handleOpenWaWeb}
                         onMarkWaSent={handleMarkWaManual}
                         onView={openParticipant}
                       />
@@ -792,8 +789,8 @@ Salam hormat,
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>🌐</span> Domain Publik RSVP
+              <h3 className="text-lg font-bold text-white">
+                Domain Publik RSVP
               </h3>
               <button
                 type="button"
@@ -847,7 +844,10 @@ Salam hormat,
       {/* Wa Blast Modal */}
       <WaBlastModal
         isOpen={isWaModalOpen}
-        onClose={() => setIsWaModalOpen(false)}
+        onClose={() => {
+          setIsWaModalOpen(false)
+          void loadData()
+        }}
         participants={filteredParticipants}
         visibleParticipants={visibleParticipants}
         currentPage={page}
@@ -857,7 +857,10 @@ Salam hormat,
       {/* Daily Report Modal */}
       <DailyReportModal
         isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
+        onClose={() => {
+          setIsReportModalOpen(false)
+          void loadData()
+        }}
       />
     </main>
   )
@@ -872,13 +875,14 @@ function SummaryCard({
   label: string
   value: number
   sub?: string
-  tone: 'white' | 'emerald' | 'cyan' | 'amber'
+  tone: 'white' | 'emerald' | 'cyan' | 'amber' | 'purple'
 }) {
   const tones = {
     white: 'text-white border-white/10 bg-white/[0.04]',
     emerald: 'text-emerald-300 border-emerald-500/20 bg-emerald-500/[0.05]',
     cyan: 'text-cyan-300 border-cyan-500/20 bg-cyan-500/[0.05]',
     amber: 'text-amber-300 border-amber-500/20 bg-amber-500/[0.05]',
+    purple: 'text-purple-300 border-purple-500/20 bg-purple-500/[0.05]',
   }
 
   return (
@@ -898,7 +902,6 @@ function ParticipantTableRow({
   onToggleSelect,
   onToggleJalur,
   onCopyLink,
-  onOpenWa,
   onMarkWaSent,
   onView,
 }: {
@@ -910,7 +913,6 @@ function ParticipantTableRow({
   onToggleSelect: (id: number) => void
   onToggleJalur: (participant: Participant) => void
   onCopyLink: (participant: Participant) => void
-  onOpenWa: (participant: Participant) => void
   onMarkWaSent: (participant: Participant) => void
   onView: (participant: Participant) => void
 }) {
@@ -942,14 +944,14 @@ function ParticipantTableRow({
           {/* Badge WA Status */}
           {participant.wa_status === 'sent' ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-500/30"
+              className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-500/30"
               title={
                 participant.waktu_kirim_wa
                   ? `Undangan WA terkirim: ${new Date(participant.waktu_kirim_wa).toLocaleString('id-ID')}`
                   : 'Undangan WA Terkirim'
               }
             >
-              <span>✓</span> WA Terkirim
+              WA Terkirim
             </span>
           ) : (
             <span className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-500 border border-slate-700/40">
@@ -971,6 +973,24 @@ function ParticipantTableRow({
               Menunggu RSVP
             </span>
           )}
+
+          {/* Badge Souvenir Status */}
+          {participant.souvenir_status === 'claimed' || participant.waktu_souvenir ? (
+            <span
+              className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 border border-amber-500/30"
+              title={
+                participant.waktu_souvenir
+                  ? `Souvenir diambil: ${new Date(participant.waktu_souvenir).toLocaleString('id-ID')}`
+                  : 'Souvenir Sudah Diambil'
+              }
+            >
+              🎁 Souvenir Diambil
+            </span>
+          ) : (
+            <span className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-500 border border-slate-700/40">
+              🎁 Belum Ambil
+            </span>
+          )}
         </div>
 
         <p className="mt-1 text-xs font-normal text-slate-500">
@@ -986,14 +1006,13 @@ function ParticipantTableRow({
           type="button"
           onClick={() => onToggleJalur(participant)}
           title="Klik untuk beralih antara VIP Manual Klien dan Blast Sistem"
-          className={`group flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border transition active:scale-95 ${
+          className={`group inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold border transition active:scale-95 ${
             isManual
               ? 'border-purple-500/40 bg-purple-500/15 text-purple-300 hover:bg-purple-500/25'
               : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
           }`}
         >
-          <span>{isManual ? '👑' : '🚀'}</span>
-          <span>{isManual ? 'VIP Manual' : 'Blast Sistem'}</span>
+          {isManual ? 'VIP Manual' : 'Blast Sistem'}
         </button>
       </td>
 
@@ -1024,18 +1043,9 @@ function ParticipantTableRow({
                 : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-cyan-300'
             }`}
           >
-            {isCopied ? '✓ Disalin' : '📋 Salin Link'}
+            {isCopied ? 'Disalin' : 'Salin Link'}
           </button>
 
-          {/* Tombol Buka WhatsApp Web */}
-          <button
-            type="button"
-            onClick={() => onOpenWa(participant)}
-            title="Kirim pesan undangan personal via WhatsApp Web"
-            className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/20 transition active:scale-95"
-          >
-            💬 WA Web
-          </button>
 
           {/* Tombol Tandai Terkirim Manual jika belum */}
           {participant.wa_status !== 'sent' && (
@@ -1045,7 +1055,7 @@ function ParticipantTableRow({
               title="Tandai undangan ini sudah dikirim manual oleh klien"
               className="rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] font-medium text-slate-400 hover:border-emerald-500 hover:text-emerald-300 transition"
             >
-              ✓ Tandai
+              Tandai
             </button>
           )}
 

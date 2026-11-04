@@ -43,21 +43,29 @@ if (!$peserta && !empty($variants)) {
     $peserta = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+if (!$peserta && $name !== '') {
+    $stmt = $pdo->prepare("SELECT * FROM user_peserta WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1");
+    $stmt->execute([$name]);
+    $peserta = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 $newStatus = ($action === 'decline') ? 'declined' : 'confirmed';
 
 if ($peserta) {
-    // Update data peserta yang sudah ada di database
+    $wasAlreadyConfirmed = ($peserta['rsvp_status'] === 'confirmed');
+
+    // Update data peserta yang sudah ada di database tanpa menimpa waktu konfirmasi pertama jika sudah pernah konfirmasi
     $stmtUpdate = $pdo->prepare("
         UPDATE user_peserta
         SET rsvp_status = ?,
-            waktu_konfirmasi = NOW()
+            waktu_konfirmasi = COALESCE(waktu_konfirmasi, NOW())
         WHERE id = ?
     ");
     $stmtUpdate->execute([$newStatus, $peserta['id']]);
 
     // Ambil data terbaru
     $stmt = $pdo->prepare("
-        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, gate, role_permission, status, rsvp_status
+        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, waktu_souvenir, souvenir_status, gate, role_permission, status, rsvp_status
         FROM user_peserta WHERE id = ? LIMIT 1
     ");
     $stmt->execute([$peserta['id']]);
@@ -67,7 +75,10 @@ if ($peserta) {
 
     echo json_encode([
         'success' => true,
-        'message' => $action === 'decline' ? 'Konfirmasi berhalangan hadir telah dicatat' : 'Kehadiran berhasil dikonfirmasi',
+        'already_confirmed' => $wasAlreadyConfirmed && $action === 'confirm',
+        'message' => ($wasAlreadyConfirmed && $action === 'confirm')
+            ? 'Anda sudah melakukan konfirmasi kehadiran sebelumnya'
+            : ($action === 'decline' ? 'Konfirmasi berhalangan hadir telah dicatat' : 'Kehadiran berhasil dikonfirmasi'),
         'data' => $updated
     ]);
     exit;

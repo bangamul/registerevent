@@ -177,18 +177,8 @@ export function WaBlastModal({
     }
 
     // Dummy base64url token for preview
-    let dummyToken = 'eyJwaG9uZSI6IjA4MTIzNDU2Nzg5MCIsIm5hbWUiOiJIZW5kcmEgR3VuYXdhbiJ9'
-    try {
-      dummyToken = btoa(JSON.stringify({ phone: sample.notelp, name: sample.name, ts: Date.now() }))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '')
-    } catch {
-      // fallback
-    }
-
     const cleanBase = (webBaseUrl || 'http://localhost:5173').replace(/\/$/, '')
-    const sampleUrl = `${cleanBase}/landing?token=${dummyToken}`
+    const sampleUrl = `${cleanBase}/landing`
 
     let text = template
     text = text.replace(/{{\s*(url_registrasi|link_registrasi)\s*}}/gi, sampleUrl)
@@ -225,18 +215,8 @@ export function WaBlastModal({
       setTestLoading(true)
       setTestFeedback(null)
 
-      // Buat token khusus untuk nomor uji coba ini
       const cleanBase = (webBaseUrl || 'http://localhost:5173').replace(/\/$/, '')
-      let testToken = ''
-      try {
-        testToken = btoa(JSON.stringify({ phone: testPhone.trim(), name: 'Tamu Uji Coba', pekerjaan: 'Tamu Undangan VIP', ts: Date.now() }))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=+$/, '')
-      } catch {
-        // fallback
-      }
-      const testUrl = `${cleanBase}/landing?token=${testToken}`
+      const testUrl = `${cleanBase}/landing`
 
       let compiledTestMessage = template
       compiledTestMessage = compiledTestMessage.replace(/{{\s*(url_registrasi|link_registrasi)\s*}}/gi, testUrl)

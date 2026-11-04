@@ -8,6 +8,7 @@ import {
   type Participant,
   type LogActivity,
 } from './data'
+import { claimSouvenir, resetSouvenirClaim } from '../validation/data'
 import { compressImage } from '../../utils/compressImage'
 
 // const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost/trisakti'
@@ -50,6 +51,65 @@ export function DetailPage() {
   const [logs, setLogs] = useState<LogActivity[]>([])
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [logPage, setLogPage] = useState(1)
+  const [processingSouvenir, setProcessingSouvenir] = useState(false)
+
+  async function handleClaimSouvenir() {
+    if (!participant) return
+    if (!confirm(`Konfirmasi pemberian paket souvenir untuk ${participant.name}?`)) return
+    setProcessingSouvenir(true)
+    try {
+      const res = await claimSouvenir(participant.id_registrasi, '1', 'Admin Detail', true)
+      if (res.success && res.data) {
+        setParticipant((prev) => (prev ? {
+          ...prev,
+          waktu_souvenir: res.data!.waktu_souvenir ?? new Date().toISOString(),
+          souvenir_status: 'claimed',
+          souvenir_petugas: 'Admin Detail',
+        } : null))
+        alert(`Souvenir berhasil diberikan kepada ${participant.name}!`)
+        if (participant.id) {
+          const freshLogs = await getParticipantLogs({
+            participantId: participant.id,
+            idRegistrasi: participant.id_registrasi,
+          })
+          setLogs(freshLogs)
+        }
+      } else {
+        alert(res.message)
+      }
+    } catch {
+      alert('Gagal memproses klaim souvenir')
+    } finally {
+      setProcessingSouvenir(false)
+    }
+  }
+
+  async function handleResetSouvenir() {
+    if (!participant) return
+    if (!confirm(`Reset status souvenir ${participant.name} menjadi Belum Ambil?`)) return
+    setProcessingSouvenir(true)
+    try {
+      await resetSouvenirClaim(participant.id_registrasi, '1')
+      setParticipant((prev) => (prev ? {
+        ...prev,
+        waktu_souvenir: null,
+        souvenir_status: 'unclaimed',
+        souvenir_petugas: null,
+      } : null))
+      alert('Status souvenir berhasil direset ke Belum Ambil.')
+      if (participant.id) {
+        const freshLogs = await getParticipantLogs({
+          participantId: participant.id,
+          idRegistrasi: participant.id_registrasi,
+        })
+        setLogs(freshLogs)
+      }
+    } catch {
+      alert('Gagal mereset status souvenir')
+    } finally {
+      setProcessingSouvenir(false)
+    }
+  }
 
   useEffect(() => {
     if (!idRegistrasi) {
@@ -669,6 +729,81 @@ export function DetailPage() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Pengambilan Souvenir */}
+          <div className="border-t border-white/10 bg-slate-900/30 p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <span>🎁</span> Informasi Pengambilan Souvenir
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Setiap tamu berhak atas 1 paket souvenir eksklusif acara.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {participant.souvenir_status === 'claimed' || participant.waktu_souvenir ? (
+                  <button
+                    type="button"
+                    onClick={handleResetSouvenir}
+                    disabled={processingSouvenir}
+                    className="rounded-xl border border-rose-500/40 bg-rose-950/40 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-900/40 transition active:scale-95 disabled:opacity-50"
+                  >
+                    🔄 Reset Status Souvenir
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleClaimSouvenir}
+                    disabled={processingSouvenir}
+                    className="rounded-xl border border-amber-500/40 bg-amber-500/20 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition active:scale-95 disabled:opacity-50"
+                  >
+                    🎁 Klaim Souvenir Manual
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Status Souvenir
+                </p>
+                <div className="mt-1 flex items-center gap-2">
+                  {participant.souvenir_status === 'claimed' || participant.waktu_souvenir ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300 border border-emerald-500/40">
+                      ✓ Sudah Diambil
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 border border-slate-700">
+                      Belum Diambil
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Waktu Pengambilan
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-200">
+                  {participant.waktu_souvenir
+                    ? `${new Date(participant.waktu_souvenir).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} WIB`
+                    : '-'}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Petugas / Lokasi
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-200">
+                  {participant.souvenir_petugas || '-'}
+                </p>
               </div>
             </div>
           </div>
