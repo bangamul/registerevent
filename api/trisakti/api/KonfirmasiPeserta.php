@@ -54,14 +54,18 @@ $newStatus = ($action === 'decline') ? 'declined' : 'confirmed';
 if ($peserta) {
     $wasAlreadyConfirmed = ($peserta['rsvp_status'] === 'confirmed');
 
+    // Jika tamu mengisi / memperbarui nomor telepon, update nomor teleponnya di database
+    $updatePhone = ($phone !== '') ? $phone : $peserta['notelp'];
+
     // Update data peserta yang sudah ada di database tanpa menimpa waktu konfirmasi pertama jika sudah pernah konfirmasi
     $stmtUpdate = $pdo->prepare("
         UPDATE user_peserta
         SET rsvp_status = ?,
-            waktu_konfirmasi = COALESCE(waktu_konfirmasi, NOW())
+            waktu_konfirmasi = COALESCE(waktu_konfirmasi, NOW()),
+            notelp = ?
         WHERE id = ?
     ");
-    $stmtUpdate->execute([$newStatus, $peserta['id']]);
+    $stmtUpdate->execute([$newStatus, $updatePhone, $peserta['id']]);
 
     // Ambil data terbaru
     $stmt = $pdo->prepare("

@@ -314,7 +314,9 @@ export interface LaporanHarianResponse {
 }
 
 export async function fetchLaporanHarian(): Promise<LaporanHarianResponse> {
-  const response = await axios.get<LaporanHarianResponse>(`${API_URL}/LaporanHarian.php`)
+  const response = await axios.get<LaporanHarianResponse>(`${API_URL}/LaporanHarian.php`, {
+    params: { _t: Date.now() },
+  })
   if (!response.data.success) {
     throw new Error('Gagal memuat laporan harian.')
   }

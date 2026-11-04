@@ -63,8 +63,8 @@ try {
         exit;
     }
 
-    // Path absolut folder htdocs XAMPP Linux kamu
-    $uploadDir = '/opt/lampp/htdocs/trisakti/assets/images/';
+    // Folder penyimpanan foto peserta
+    $uploadDir = __DIR__ . '/../assets/images/';
 
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
