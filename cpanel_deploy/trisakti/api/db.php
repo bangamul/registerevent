@@ -1,11 +1,10 @@
 <?php
 
 // Konfigurasi Database cPanel Rumahweb
-// Di cPanel, nama database & username biasanya diawali prefix username cPanel (contoh: usercpanel_trisakti)
 $host = 'localhost';
-$dbname = 'trisakti';     // Sesuaikan dengan nama database di cPanel
-$username = 'root';       // Sesuaikan dengan user database di cPanel
-$password = '';           // Sesuaikan dengan password user database di cPanel
+$dbname = 'lotx4132_event-rspv';
+$username = 'lotx4132_event-rsvp-user';
+$password = '3v3ntrsvp';
 
 try {
     $pdo = new PDO(

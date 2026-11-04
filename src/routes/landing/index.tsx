@@ -480,7 +480,7 @@ export function LandingPage() {
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
               <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
                 <img
-                  src="/invitation.jpg"
+                  src="/invitation-v2.jpg"
                   alt="Key Visual Undangan Resmi Peluncuran Buku Timah, Manusia, dan Masa Depan"
                   className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
                 />

@@ -632,7 +632,7 @@ export function WaBlastModal({
                     {sendFlyer && (
                       <div className="relative border-b border-black/10 bg-black/20">
                         <img
-                          src="/invitation.jpg"
+                          src="/invitation-v2.jpg"
                           alt="Flyer Acara"
                           className="w-full max-h-56 object-cover object-top"
                         />
