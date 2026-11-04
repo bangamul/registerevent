@@ -23,6 +23,9 @@ export type Participant = {
   status: boolean
   rsvp_status?: 'pending' | 'confirmed' | 'declined' | string
   jalur_undangan?: 'blast' | 'manual' | string
+  waktu_souvenir?: string | null
+  souvenir_status?: 'unclaimed' | 'claimed' | string
+  souvenir_petugas?: string | null
 }
 
 interface ParticipantResponse {
@@ -282,6 +285,8 @@ export interface DailyReportSummary {
   belum_hadir_venue: number
   jalur_blast?: number
   jalur_manual?: number
+  souvenir_diambil?: number
+  souvenir_belum_diambil?: number
 }
 
 export interface DailyBreakdownItem {

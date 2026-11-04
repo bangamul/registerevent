@@ -125,7 +125,41 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-8 text-white">
+      {/* STATION SWITCHER HEADER */}
+      <div className="mb-6 flex w-full max-w-xl flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-900/90 p-1.5 border border-slate-800 shadow-xl backdrop-blur">
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            onClick={() => navigate({ to: '/validation' })}
+            className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+          >
+            🚪 Gate Masuk
+          </button>
+          <button
+            type="button"
+            className="rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-950 shadow-md"
+          >
+            🏃 Gate Keluar
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: '/validation/souvenir' })}
+            className="rounded-xl px-3 py-2 text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-500/20 transition"
+          >
+            🎁 Meja Souvenir
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate({ to: '/dashboard' })}
+          className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 transition"
+        >
+          📊 Dashboard
+        </button>
+      </div>
+
       <section className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
         <div className="text-center">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400">
