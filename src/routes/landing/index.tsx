@@ -25,6 +25,7 @@ export function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [declining, setDeclining] = useState(false)
   const [error, setError] = useState('')
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
@@ -182,7 +183,8 @@ export function LandingPage() {
     }
 
     // Pengamanan Double Reservasi / Konfirmasi di Frontend
-    if (selectedParticipant.rsvp_status === 'confirmed') {
+    const rsvpCurrent = (selectedParticipant.rsvp_status || '').trim().toLowerCase()
+    if (rsvpCurrent === 'confirmed') {
       setView('ticket')
       return
     }
@@ -428,8 +430,9 @@ export function LandingPage() {
   }
 
   // TAMPILAN 4: FORMULIR UTAMA DENGAN KEY VISUAL (KV) RESMI & PENGAMANAN DOUBLE RESERVASI
-  const isConfirmedHadir = selectedParticipant?.rsvp_status === 'confirmed'
-  const isDeclined = selectedParticipant?.rsvp_status === 'declined'
+  const rsvpStatus = (selectedParticipant?.rsvp_status || '').trim().toLowerCase()
+  const isConfirmedHadir = rsvpStatus === 'confirmed'
+  const isDeclined = rsvpStatus === 'declined'
 
   return (
     <main className="relative min-h-screen bg-[#070b14] text-white">
@@ -469,12 +472,21 @@ export function LandingPage() {
           {/* POSTER 1: UNDANGAN RESMI */}
           <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
-              <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
+              <div 
+                onClick={() => setPreviewImage('/invitation-v2.jpg')}
+                className="group relative aspect-[1024/726] w-full cursor-pointer overflow-hidden rounded-2xl bg-slate-950"
+                title="Klik untuk memperbesar gambar"
+              >
                 <img
                   src="/invitation-v2.jpg"
                   alt="Key Visual Undangan Resmi Peluncuran Buku Timah, Manusia, dan Masa Depan"
-                  className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
+                  className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-black/0 transition duration-300 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg border border-amber-500/40 backdrop-blur-sm">
+                    🔍 Perbesar
+                  </span>
+                </div>
                 <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
               </div>
             </div>
@@ -483,12 +495,21 @@ export function LandingPage() {
           {/* POSTER 2: KATA PENGANTAR */}
           <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
-              <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
+              <div 
+                onClick={() => setPreviewImage('/kata-pengantar.jpg')}
+                className="group relative aspect-[1024/726] w-full cursor-pointer overflow-hidden rounded-2xl bg-slate-950"
+                title="Klik untuk memperbesar gambar"
+              >
                 <img
                   src="/kata-pengantar.jpg"
                   alt="Kata Pengantar Menteri ESDM RI Peluncuran Buku Timah, Manusia, dan Masa Depan"
-                  className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
+                  className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-black/0 transition duration-300 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg border border-amber-500/40 backdrop-blur-sm">
+                    🔍 Perbesar
+                  </span>
+                </div>
                 <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
               </div>
             </div>
@@ -497,12 +518,21 @@ export function LandingPage() {
           {/* POSTER 3: AGENDA ACARA */}
           <div className="w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-[20%] xl:w-[21%] mx-auto lg:mx-0 shrink-0">
             <div className="overflow-hidden rounded-3xl border-2 border-amber-500/30 bg-slate-900/60 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl">
-              <div className="relative aspect-[3/4.2] w-full overflow-hidden rounded-2xl bg-slate-950">
+              <div 
+                onClick={() => setPreviewImage('/agenda.jpg')}
+                className="group relative aspect-[1024/726] w-full cursor-pointer overflow-hidden rounded-2xl bg-slate-950"
+                title="Klik untuk memperbesar gambar"
+              >
                 <img
                   src="/agenda.jpg"
                   alt="Agenda Acara Peluncuran Buku Timah, Manusia, dan Masa Depan"
-                  className="h-full w-full object-cover object-center transition duration-500 hover:scale-[1.02]"
+                  className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-black/0 transition duration-300 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <span className="rounded-full bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg border border-amber-500/40 backdrop-blur-sm">
+                    🔍 Perbesar
+                  </span>
+                </div>
                 <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/20" />
               </div>
             </div>
@@ -730,6 +760,33 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-white/10 py-6 text-center text-xs text-slate-500">
         Panitia Penyelenggara Peluncuran Buku: Timah, Manusia, dan Masa Depan • Hotel Borobudur Jakarta
       </footer>
+
+      {/* LIGHTBOX MODAL: PREVIEW FULL SIZE IMAGE */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fadeIn"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-h-[92vh] max-w-5xl overflow-hidden rounded-2xl border border-amber-500/40 bg-slate-950 shadow-2xl p-2"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-slate-900/90 text-white hover:bg-amber-500 hover:text-black transition shadow-xl border border-white/20 font-bold text-sm"
+              title="Tutup Preview"
+            >
+              ✕
+            </button>
+            <img
+              src={previewImage}
+              alt="Perbesar Gambar Undangan"
+              className="max-h-[88vh] w-auto max-w-full rounded-xl object-contain shadow-inner"
+            />
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { fetchLaporanHarian, type LaporanHarianResponse } from '../routes/dashboard/data'
+import {
+  fetchLaporanHarian,
+  findParticipants,
+  type LaporanHarianResponse,
+  type Participant,
+  type TamuRsvpItem,
+} from '../routes/dashboard/data'
 
 interface DailyReportModalProps {
   isOpen: boolean
   onClose: () => void
+  participants?: Participant[]
 }
 
-export function DailyReportModal({ isOpen, onClose }: DailyReportModalProps) {
+export function DailyReportModal({ isOpen, onClose, participants = [] }: DailyReportModalProps) {
   const [data, setData] = useState<LaporanHarianResponse | null>(null)
+  const [fetchedParticipants, setFetchedParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -17,8 +25,20 @@ export function DailyReportModal({ isOpen, onClose }: DailyReportModalProps) {
     try {
       setLoading(true)
       setError('')
-      const res = await fetchLaporanHarian()
-      setData(res)
+      const [resReport, resParts] = await Promise.allSettled([
+        fetchLaporanHarian(),
+        findParticipants(),
+      ])
+
+      if (resReport.status === 'fulfilled') {
+        setData(resReport.value)
+      } else {
+        throw new Error('Gagal memuat laporan harian.')
+      }
+
+      if (resParts.status === 'fulfilled') {
+        setFetchedParticipants(resParts.value)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat laporan')
     } finally {
@@ -36,9 +56,35 @@ export function DailyReportModal({ isOpen, onClose }: DailyReportModalProps) {
 
   const summary = data?.summary
 
+  // Daftar seluruh peserta dari props atau hasil fetch
+  const allList = participants && participants.length > 0 ? participants : fetchedParticipants
+
+  // Tamu Hadir: Prioritaskan data.tamu_hadir dari backend, jika kosong fallback otomatis ke filter peserta
+  const rawHadir = (data?.tamu_hadir && data.tamu_hadir.length > 0)
+    ? data.tamu_hadir
+    : allList.filter((p) => {
+        const rsvp = String(p.rsvp_status || '').toLowerCase().trim()
+        return rsvp === 'confirmed' || (rsvp !== 'declined' && (Boolean(p.waktu_konfirmasi) || Number(p.status) === 1))
+      })
+
+  // Tamu Berhalangan: Prioritaskan data.tamu_berhalangan dari backend, jika kosong fallback otomatis ke filter peserta
+  const rawBerhalangan = (data?.tamu_berhalangan && data.tamu_berhalangan.length > 0)
+    ? data.tamu_berhalangan
+    : allList.filter((p) => {
+        const rsvp = String(p.rsvp_status || '').toLowerCase().trim()
+        return rsvp === 'declined'
+      })
+
+  const tamuHadir = rawHadir as (TamuRsvpItem | Participant)[]
+  const tamuBerhalangan = rawBerhalangan as (TamuRsvpItem | Participant)[]
+
+  // Sinkronisasi angka jika ada selisih antara count dan list
+  const rsvpHadirTotal = summary ? Math.max(summary.rsvp_hadir || 0, tamuHadir.length) : tamuHadir.length
+  const rsvpBerhalanganTotal = summary ? Math.max(summary.rsvp_berhalangan || 0, tamuBerhalangan.length) : tamuBerhalangan.length
+
   // 1. FORMAT PESAN WHATSAPP RESMI & PROTOKOLER
   function copyWaSummary() {
-    if (!summary) return
+    if (!summary || !data) return
 
     const nowStr = new Date().toLocaleString('id-ID', {
       dateStyle: 'full',
@@ -47,10 +93,10 @@ export function DailyReportModal({ isOpen, onClose }: DailyReportModalProps) {
 
     const rsvpPercent =
       summary.total_peserta > 0
-        ? ((summary.rsvp_hadir / summary.total_peserta) * 100).toFixed(1)
+        ? ((rsvpHadirTotal / summary.total_peserta) * 100).toFixed(1)
         : '0'
 
-    const text = `*LAPORAN PERKEMBANGAN DISTRIBUSI UNDANGAN & KONFIRMASI KEHADIRAN (RSVP)*
+    const text = `*LAPORAN PERKEMBANGAN KONFIRMASI KEHADIRAN (RSVP)*
 *Peluncuran Buku: Timah, Manusia, dan Masa Depan*
 
 Kepada Yth.
@@ -58,29 +104,23 @@ Kepada Yth.
 di Tempat
 
 Dengan hormat,
-Bersama ini kami sampaikan laporan mutakhir rekapitulasi pengiriman undangan digital dan konfirmasi kehadiran tamu undangan per *${nowStr} WIB*:
+Bersama ini kami sampaikan laporan mutakhir rekapitulasi konfirmasi kehadiran tamu undangan per *${nowStr} WIB*:
 
-I. STATUS DISTRIBUSI UNDANGAN
+I. REKAPITULASI STATISTIK RSVP
 • Total Basis Data Undangan : *${summary.total_peserta} Tamu*
-  - Jalur Blast Sistem      : ${summary.jalur_blast ?? 0} Tamu
-  - Jalur VIP Manual Klien  : ${summary.jalur_manual ?? 0} Tamu
-• Undangan Berhasil Terkirim: *${summary.wa_terkirim} Tamu (${summary.wa_persentase}%)*
-• Undangan Menunggu Kirim   : *${summary.wa_belum_terkirim} Tamu*
-
-II. REKAPITULASI KONFIRMASI KEHADIRAN (RSVP)
-• Konfirmasi Hadir (E-Ticket Terbit) : *${summary.rsvp_hadir} Tamu (${rsvpPercent}%)*
-• Konfirmasi Berhalangan Hadir       : *${summary.rsvp_berhalangan} Tamu*
-• Belum Memberikan Konfirmasi        : *${summary.rsvp_pending} Tamu*
-
-III. VALIDASI KEHADIRAN DI LOKASI (VENUE CHECK-IN)
+• Konfirmasi Hadir (E-Ticket Terbit) : *${rsvpHadirTotal} Tamu (${rsvpPercent}%)*
+• Konfirmasi Berhalangan Hadir       : *${rsvpBerhalanganTotal} Tamu*
+• Belum Memberikan Konfirmasi        : *${Math.max(0, summary.total_peserta - rsvpHadirTotal - rsvpBerhalanganTotal)} Tamu*
 • Telah Hadir (Scan Pintu Gate)      : *${summary.hadir_venue} Tamu*
-• Belum Tiba di Lokasi               : *${summary.belum_hadir_venue} Tamu*
-
-IV. DISTRIBUSI SOUVENIR ACARA
 • Souvenir Terdistribusi             : *${summary.souvenir_diambil ?? 0} Tamu*
-• Sisa Belum Diambil                 : *${summary.souvenir_belum_diambil ?? (summary.total_peserta - (summary.souvenir_diambil ?? 0))} Tamu*
 
-V. INFORMASI PELAKSANAAN ACARA
+II. DAFTAR TAMU KONFIRMASI HADIR (${tamuHadir.length} Tamu)
+${tamuHadir.length > 0 ? tamuHadir.map((t, idx) => `${idx + 1}. *${t.name}* - ${t.pekerjaan || 'Tamu Undangan'}`).join('\n') : '_Belum ada tamu yang konfirmasi hadir_'}
+
+III. DAFTAR TAMU BERHALANGAN HADIR (${tamuBerhalangan.length} Tamu)
+${tamuBerhalangan.length > 0 ? tamuBerhalangan.map((t, idx) => `${idx + 1}. *${t.name}* - ${t.pekerjaan || 'Tamu Undangan'}`).join('\n') : '_Tidak ada tamu yang menyatakan berhalangan_'}
+
+IV. INFORMASI PELAKSANAAN ACARA
 📅 Hari/Tanggal : Senin, 9 November 2026
 ⏰ Waktu Acara  : Pukul 15.00 - 19.00 WIB
 📍 Tempat Acara : Sumba Room, Hotel Borobudur Jakarta
@@ -113,7 +153,7 @@ _Sistem Registrasi Digital & E-Ticketing_`
 
     const rsvpPercent =
       summary.total_peserta > 0
-        ? ((summary.rsvp_hadir / summary.total_peserta) * 100).toFixed(1)
+        ? ((rsvpHadirTotal / summary.total_peserta) * 100).toFixed(1)
         : '0'
 
     const printWindow = window.open('', '_blank', 'width=950,height=800')
@@ -141,7 +181,8 @@ _Sistem Registrasi Digital & E-Ticketing_`
           th { background-color: #f2f2f2; font-weight: bold; text-align: left; }
           .text-right { text-align: right; }
           .text-center { text-align: center; }
-          .section-header { font-size: 11pt; font-weight: bold; margin: 16px 0 6px 0; border-bottom: 1px solid #bbb; padding-bottom: 4px; }
+          .font-mono { font-family: monospace; font-size: 9.5pt; }
+          .section-header { font-size: 11pt; font-weight: bold; margin: 18px 0 6px 0; border-bottom: 1px solid #bbb; padding-bottom: 4px; }
           .signature-box { margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid; }
           .sig-col { width: 220px; text-align: center; }
           .sig-space { height: 70px; }
@@ -178,46 +219,22 @@ _Sistem Registrasi Digital & E-Ticketing_`
               <td class="text-right">100%</td>
               <td>Database tamu resmi yang terdaftar</td>
             </tr>
-            <tr>
-              <td>• Jalur Blast Sistem (WhatsApp Otomatis)</td>
-              <td class="text-right">${summary.jalur_blast ?? 0}</td>
-              <td class="text-right">${summary.total_peserta > 0 ? (((summary.jalur_blast ?? 0) / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
-              <td>Dikelola panitia sistem blast</td>
-            </tr>
-            <tr>
-              <td>• Jalur VIP Manual Klien (Personal)</td>
-              <td class="text-right">${summary.jalur_manual ?? 0}</td>
-              <td class="text-right">${summary.total_peserta > 0 ? (((summary.jalur_manual ?? 0) / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
-              <td>Didistribusikan langsung oleh tim klien</td>
-            </tr>
-            <tr>
-              <td><b>Undangan Berhasil Terkirim (WA)</b></td>
-              <td class="text-right"><b>${summary.wa_terkirim}</b></td>
-              <td class="text-right"><b>${summary.wa_persentase}%</b></td>
-              <td>Undangan diterima di nomor WhatsApp tamu</td>
-            </tr>
-            <tr>
-              <td>Undangan Belum Terkirim</td>
-              <td class="text-right">${summary.wa_belum_terkirim}</td>
-              <td class="text-right">${(100 - summary.wa_persentase).toFixed(1)}%</td>
-              <td>Menunggu giliran pengiriman</td>
-            </tr>
             <tr style="background-color: #fafafa;">
               <td><b>Konfirmasi Kehadiran Hadir (RSVP)</b></td>
-              <td class="text-right"><b>${summary.rsvp_hadir}</b></td>
+              <td class="text-right"><b>${rsvpHadirTotal}</b></td>
               <td class="text-right"><b>${rsvpPercent}%</b></td>
               <td><b>E-Ticket QR Code resmi telah diterbitkan</b></td>
             </tr>
             <tr>
               <td>Konfirmasi Berhalangan Hadir</td>
-              <td class="text-right">${summary.rsvp_berhalangan}</td>
-              <td class="text-right">${summary.total_peserta > 0 ? ((summary.rsvp_berhalangan / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
+              <td class="text-right">${rsvpBerhalanganTotal}</td>
+              <td class="text-right">${summary.total_peserta > 0 ? ((rsvpBerhalanganTotal / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
               <td>Telah menyatakan tidak dapat hadir</td>
             </tr>
             <tr>
               <td>Menunggu Jawaban RSVP</td>
-              <td class="text-right">${summary.rsvp_pending}</td>
-              <td class="text-right">${summary.total_peserta > 0 ? ((summary.rsvp_pending / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
+              <td class="text-right">${Math.max(0, summary.total_peserta - rsvpHadirTotal - rsvpBerhalanganTotal)}</td>
+              <td class="text-right">${summary.total_peserta > 0 ? (((summary.total_peserta - rsvpHadirTotal - rsvpBerhalanganTotal) / summary.total_peserta) * 100).toFixed(1) : 0}%</td>
               <td>Belum mengisi form konfirmasi</td>
             </tr>
             <tr>
@@ -235,15 +252,82 @@ _Sistem Registrasi Digital & E-Ticketing_`
           </tbody>
         </table>
 
+        <div class="section-header">II. DETAIL DAFTAR TAMU KONFIRMASI HADIR (${tamuHadir.length} ORANG)</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 35px;" class="text-center">No</th>
+              <th>Nama Lengkap Tamu</th>
+              <th>Jabatan / Instansi</th>
+              <th style="width: 110px;" class="text-center">ID Registrasi</th>
+              <th style="width: 110px;" class="text-center">No. WhatsApp</th>
+              <th style="width: 130px;" class="text-center">Waktu Konfirmasi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              tamuHadir.length > 0
+                ? tamuHadir
+                    .map(
+                      (t, idx) => `
+                  <tr>
+                    <td class="text-center">${idx + 1}</td>
+                    <td><b>${t.name}</b></td>
+                    <td>${t.pekerjaan || '-'}</td>
+                    <td class="text-center font-mono">${t.id_registrasi}</td>
+                    <td class="text-center">${t.notelp || '-'}</td>
+                    <td class="text-center">${t.waktu_konfirmasi || '-'}</td>
+                  </tr>
+                `,
+                    )
+                    .join('')
+                : `<tr><td colspan="6" class="text-center" style="color: #666; padding: 12px;">Belum ada tamu yang konfirmasi hadir</td></tr>`
+            }
+          </tbody>
+        </table>
+
+        <div class="section-header">III. DETAIL DAFTAR TAMU KONFIRMASI BERHALANGAN HADIR (${tamuBerhalangan.length} ORANG)</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 35px;" class="text-center">No</th>
+              <th>Nama Lengkap Tamu</th>
+              <th>Jabatan / Instansi</th>
+              <th style="width: 110px;" class="text-center">ID Registrasi</th>
+              <th style="width: 110px;" class="text-center">No. WhatsApp</th>
+              <th style="width: 130px;" class="text-center">Waktu Konfirmasi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              tamuBerhalangan.length > 0
+                ? tamuBerhalangan
+                    .map(
+                      (t, idx) => `
+                  <tr>
+                    <td class="text-center">${idx + 1}</td>
+                    <td><b>${t.name}</b></td>
+                    <td>${t.pekerjaan || '-'}</td>
+                    <td class="text-center font-mono">${t.id_registrasi}</td>
+                    <td class="text-center">${t.notelp || '-'}</td>
+                    <td class="text-center">${t.waktu_konfirmasi || '-'}</td>
+                  </tr>
+                `,
+                    )
+                    .join('')
+                : `<tr><td colspan="6" class="text-center" style="color: #666; padding: 12px;">Tidak ada tamu yang menyatakan berhalangan hadir</td></tr>`
+            }
+          </tbody>
+        </table>
+
         ${
           data.daily_breakdown && data.daily_breakdown.length > 0
             ? `
-          <div class="section-header">II. REKAPITULASI PROGRES PENGIRIMAN & RSVP HARIAN</div>
+          <div class="section-header">IV. REKAPITULASI PROGRES RSVP HARIAN</div>
           <table>
             <thead>
               <tr>
                 <th>Tanggal</th>
-                <th class="text-right">Undangan WA Terkirim</th>
                 <th class="text-right">Konfirmasi Hadir (RSVP)</th>
               </tr>
             </thead>
@@ -253,7 +337,6 @@ _Sistem Registrasi Digital & E-Ticketing_`
                   (row) => `
                 <tr>
                   <td>${new Date(row.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                  <td class="text-right">+${row.wa_terkirim} pesan</td>
                   <td class="text-right">+${row.rsvp_hadir} tamu</td>
                 </tr>
               `,
@@ -265,7 +348,7 @@ _Sistem Registrasi Digital & E-Ticketing_`
             : ''
         }
 
-        <div class="section-header">III. DETAIL WAKTU & LOKASI ACARA</div>
+        <div class="section-header">V. DETAIL WAKTU & LOKASI ACARA</div>
         <table>
           <tr>
             <td style="width: 25%;"><b>Nama Acara</b></td>
@@ -324,52 +407,149 @@ _Sistem Registrasi Digital & E-Ticketing_`
       timeStyle: 'short',
     })
 
-    // Sheet 1: Ringkasan Eksekutif
+    // Sheet 1: Ringkasan Eksekutif & Detail Tamu
     const wsSummaryData: (string | number)[][] = [
       ['LAPORAN EKSEKUTIF REAL-TIME DISTRIBUSI UNDANGAN & RSVP'],
       ['Acara: Peluncuran Buku Timah, Manusia, dan Masa Depan'],
       [`Waktu Pembaruan: ${nowStr} WIB`],
       [''],
+      ['I. RINGKASAN DATA STATISTIK UTAMA'],
       ['Indikator Parameter', 'Jumlah (Orang)', 'Persentase (%)', 'Keterangan'],
       ['Total Basis Data Undangan', summary.total_peserta, '100%', 'Database tamu resmi'],
-      ['• Jalur Blast Sistem', summary.jalur_blast ?? 0, `${summary.total_peserta > 0 ? (((summary.jalur_blast ?? 0) / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Dikelola sistem blast panitia'],
-      ['• Jalur VIP Manual Klien', summary.jalur_manual ?? 0, `${summary.total_peserta > 0 ? (((summary.jalur_manual ?? 0) / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Didistribusikan langsung oleh tim klien'],
-      ['Undangan Berhasil Terkirim (WA)', summary.wa_terkirim, `${summary.wa_persentase}%`, 'Pesan diterima tamu'],
-      ['Undangan Belum Terkirim', summary.wa_belum_terkirim, `${(100 - summary.wa_persentase).toFixed(1)}%`, 'Menunggu giliran pengiriman'],
-      ['Konfirmasi Hadir (RSVP)', summary.rsvp_hadir, `${summary.total_peserta > 0 ? ((summary.rsvp_hadir / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'E-Ticket QR Code resmi diterbitkan'],
-      ['Konfirmasi Berhalangan Hadir', summary.rsvp_berhalangan, `${summary.total_peserta > 0 ? ((summary.rsvp_berhalangan / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Tamu menyatakan tidak hadir'],
-      ['Menunggu Konfirmasi RSVP', summary.rsvp_pending, `${summary.total_peserta > 0 ? ((summary.rsvp_pending / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Belum mengisi form konfirmasi'],
+      ['Konfirmasi Hadir (RSVP)', rsvpHadirTotal, `${summary.total_peserta > 0 ? ((rsvpHadirTotal / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'E-Ticket QR Code resmi diterbitkan'],
+      ['Konfirmasi Berhalangan Hadir', rsvpBerhalanganTotal, `${summary.total_peserta > 0 ? ((rsvpBerhalanganTotal / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Tamu menyatakan tidak hadir'],
+      ['Menunggu Konfirmasi RSVP', Math.max(0, summary.total_peserta - rsvpHadirTotal - rsvpBerhalanganTotal), `${summary.total_peserta > 0 ? (((summary.total_peserta - rsvpHadirTotal - rsvpBerhalanganTotal) / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Belum mengisi form konfirmasi'],
       ['Hadir di Lokasi Acara (Gate Scan)', summary.hadir_venue, `${summary.total_peserta > 0 ? ((summary.hadir_venue / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Scan QR di pintu masuk Gate'],
       ['Souvenir Terdistribusi', summary.souvenir_diambil ?? 0, `${summary.total_peserta > 0 ? (((summary.souvenir_diambil ?? 0) / summary.total_peserta) * 100).toFixed(1) : 0}%`, 'Paket souvenir telah diambil tamu'],
+      [''],
+      ['II. DETAIL DAFTAR TAMU KONFIRMASI HADIR (E-TICKET RESMI TERBIT)'],
+      ['No', 'Nama Lengkap Tamu', 'Jabatan / Instansi', 'ID Registrasi', 'Nomor WhatsApp', 'Waktu Konfirmasi'],
     ]
+
+    if (tamuHadir.length > 0) {
+      tamuHadir.forEach((t, idx) => {
+        wsSummaryData.push([
+          idx + 1,
+          t.name,
+          t.pekerjaan || '-',
+          t.id_registrasi,
+          t.notelp || '-',
+          t.waktu_konfirmasi || '-',
+        ])
+      })
+    } else {
+      wsSummaryData.push(['-', 'Belum ada tamu yang konfirmasi hadir', '', '', '', ''])
+    }
+
+    wsSummaryData.push([''])
+    wsSummaryData.push(['III. DETAIL DAFTAR TAMU KONFIRMASI BERHALANGAN HADIR'])
+    wsSummaryData.push(['No', 'Nama Lengkap Tamu', 'Jabatan / Instansi', 'ID Registrasi', 'Nomor WhatsApp', 'Waktu Konfirmasi'])
+
+    if (tamuBerhalangan.length > 0) {
+      tamuBerhalangan.forEach((t, idx) => {
+        wsSummaryData.push([
+          idx + 1,
+          t.name,
+          t.pekerjaan || '-',
+          t.id_registrasi,
+          t.notelp || '-',
+          t.waktu_konfirmasi || '-',
+        ])
+      })
+    } else {
+      wsSummaryData.push(['-', 'Tidak ada tamu yang menyatakan berhalangan hadir', '', '', '', ''])
+    }
 
     const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData)
     wsSummary['!cols'] = [
+      { wch: 6 },
       { wch: 38 },
+      { wch: 50 },
       { wch: 18 },
       { wch: 18 },
-      { wch: 40 },
+      { wch: 22 },
     ]
 
-    // Sheet 2: Rekap Harian
-    const wsDailyData: (string | number)[][] = [
-      ['REKAPITULASI PROGRES PENGIRIMAN & RSVP HARIAN'],
+    // Sheet 2: Khusus Tamu Hadir
+    const wsHadirData: (string | number)[][] = [
+      ['DAFTAR LENGKAP TAMU KONFIRMASI HADIR (E-TICKET RESMI TERBIT)'],
+      [`Total: ${tamuHadir.length} Tamu • Waktu Unduh: ${nowStr} WIB`],
       [''],
-      ['Tanggal', 'Undangan WA Terkirim', 'Konfirmasi Hadir (RSVP)'],
+      ['No', 'ID Registrasi', 'Nama Lengkap Tamu', 'Jabatan / Instansi', 'Nomor WhatsApp', 'Waktu Konfirmasi Kehadiran'],
+    ]
+    if (tamuHadir.length > 0) {
+      tamuHadir.forEach((t, idx) => {
+        wsHadirData.push([
+          idx + 1,
+          t.id_registrasi,
+          t.name,
+          t.pekerjaan || '-',
+          t.notelp || '-',
+          t.waktu_konfirmasi || '-',
+        ])
+      })
+    } else {
+      wsHadirData.push(['-', '-', 'Belum ada tamu yang konfirmasi hadir', '-', '-', '-'])
+    }
+    const wsHadir = XLSX.utils.aoa_to_sheet(wsHadirData)
+    wsHadir['!cols'] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 38 },
+      { wch: 50 },
+      { wch: 18 },
+      { wch: 24 },
+    ]
+
+    // Sheet 3: Khusus Tamu Berhalangan
+    const wsBerhalanganData: (string | number)[][] = [
+      ['DAFTAR TAMU KONFIRMASI BERHALANGAN HADIR'],
+      [`Total: ${tamuBerhalangan.length} Tamu • Waktu Unduh: ${nowStr} WIB`],
+      [''],
+      ['No', 'ID Registrasi', 'Nama Lengkap Tamu', 'Jabatan / Instansi', 'Nomor WhatsApp', 'Waktu Konfirmasi Berhalangan'],
+    ]
+    if (tamuBerhalangan.length > 0) {
+      tamuBerhalangan.forEach((t, idx) => {
+        wsBerhalanganData.push([
+          idx + 1,
+          t.id_registrasi,
+          t.name,
+          t.pekerjaan || '-',
+          t.notelp || '-',
+          t.waktu_konfirmasi || '-',
+        ])
+      })
+    } else {
+      wsBerhalanganData.push(['-', '-', 'Tidak ada tamu yang menyatakan berhalangan', '-', '-', '-'])
+    }
+    const wsBerhalangan = XLSX.utils.aoa_to_sheet(wsBerhalanganData)
+    wsBerhalangan['!cols'] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 38 },
+      { wch: 50 },
+      { wch: 18 },
+      { wch: 24 },
+    ]
+
+    // Sheet 4: Rekap Harian
+    const wsDailyData: (string | number)[][] = [
+      ['REKAPITULASI PROGRES KONFIRMASI HADIR (RSVP) HARIAN'],
+      [''],
+      ['Tanggal', 'Konfirmasi Hadir (RSVP)'],
     ]
     if (data.daily_breakdown && data.daily_breakdown.length > 0) {
       data.daily_breakdown.forEach((row) => {
         wsDailyData.push([
           new Date(row.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-          row.wa_terkirim,
           row.rsvp_hadir,
         ])
       })
     }
     const wsDaily = XLSX.utils.aoa_to_sheet(wsDailyData)
-    wsDaily['!cols'] = [{ wch: 32 }, { wch: 24 }, { wch: 24 }]
+    wsDaily['!cols'] = [{ wch: 32 }, { wch: 26 }]
 
-    // Sheet 3: Log Aktivitas Terbaru
+    // Sheet 5: Log Aktivitas Terbaru
     const wsLogData = [
       ['LOG RIWAYAT AKTIVITAS TERBARU (AUDIT TRAIL)'],
       [''],
@@ -391,13 +571,14 @@ _Sistem Registrasi Digital & E-Ticketing_`
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Eksekutif')
+    XLSX.utils.book_append_sheet(wb, wsHadir, 'Tamu Hadir')
+    XLSX.utils.book_append_sheet(wb, wsBerhalangan, 'Tamu Berhalangan')
     XLSX.utils.book_append_sheet(wb, wsDaily, 'Rekap Harian')
     XLSX.utils.book_append_sheet(wb, wsLog, 'Log Aktivitas')
 
     const timestamp = new Date().toISOString().slice(0, 10)
     XLSX.writeFile(wb, `Laporan_Eksekutif_Event_${timestamp}.xlsx`)
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-4xl my-8 rounded-3xl border border-white/10 bg-slate-900 p-6 sm:p-8 shadow-2xl text-white space-y-6 max-h-[90vh] overflow-y-auto">
@@ -496,52 +677,44 @@ _Sistem Registrasi Digital & E-Ticketing_`
 
         {summary && (
           <div className="space-y-6">
-            {/* Progress Bar Pengiriman WhatsApp */}
+            {/* Progress Bar Konfirmasi Kehadiran (RSVP) */}
             <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-5 space-y-3">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-slate-300">Progres Undangan WhatsApp Terkirim</span>
-                <span className="font-bold text-emerald-400">
-                  {summary.wa_terkirim} / {summary.total_peserta} ({summary.wa_persentase}%)
+                <span className="font-semibold text-slate-300">Progres Konfirmasi Kehadiran Tamu (RSVP)</span>
+                <span className="font-bold text-cyan-400">
+                  {summary.rsvp_hadir} / {summary.total_peserta} ({summary.total_peserta > 0 ? ((summary.rsvp_hadir / summary.total_peserta) * 100).toFixed(1) : 0}%)
                 </span>
               </div>
               <div className="h-3 w-full rounded-full bg-slate-800 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-500"
-                  style={{ width: `${Math.min(100, summary.wa_persentase)}%` }}
+                  className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400 transition-all duration-500"
+                  style={{ width: `${summary.total_peserta > 0 ? Math.min(100, (summary.rsvp_hadir / summary.total_peserta) * 100) : 0}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[11px] text-slate-500">
-                <span>{summary.wa_terkirim} undangan berhasil terkirim</span>
-                <span>{summary.wa_belum_terkirim} undangan belum dikirim</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-                <span className="text-[11px] text-slate-400">Pembagian Jalur Undangan:</span>
-                <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-300">
-                  🚀 Jalur Blast: {summary.jalur_blast ?? 0}
-                </span>
-                <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-purple-300">
-                  👑 VIP Manual Klien: {summary.jalur_manual ?? 0}
-                </span>
+              <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2">
+                <span className="text-emerald-400 font-medium">🟢 {summary.rsvp_hadir} Konfirmasi Hadir</span>
+                <span className="text-rose-400 font-medium">🔴 {summary.rsvp_berhalangan} Berhalangan</span>
+                <span className="text-slate-500 font-medium">⏳ {summary.rsvp_pending} Menunggu Konfirmasi</span>
               </div>
             </div>
 
             {/* 5 Cards Metrik Ringkasan */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-400">WA Terkirim</p>
-                <p className="mt-2 text-3xl font-black text-white">{summary.wa_terkirim}</p>
-                <p className="mt-1 text-[11px] text-slate-400">{summary.wa_persentase}% dari total</p>
+              <div className="rounded-2xl border border-slate-700 bg-slate-800/40 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Total Undangan</p>
+                <p className="mt-2 text-3xl font-black text-white">{summary.total_peserta}</p>
+                <p className="mt-1 text-[11px] text-slate-400">Basis data resmi</p>
               </div>
 
               <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.06] p-4">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-cyan-400">RSVP Hadir</p>
-                <p className="mt-2 text-3xl font-black text-white">{summary.rsvp_hadir}</p>
-                <p className="mt-1 text-[11px] text-slate-400">Konfirmasi hadir</p>
+                <p className="mt-2 text-3xl font-black text-white">{rsvpHadirTotal}</p>
+                <p className="mt-1 text-[11px] text-emerald-400">E-Ticket Terbit</p>
               </div>
 
               <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] p-4">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-rose-400">Berhalangan</p>
-                <p className="mt-2 text-3xl font-black text-white">{summary.rsvp_berhalangan}</p>
+                <p className="mt-2 text-3xl font-black text-white">{rsvpBerhalanganTotal}</p>
                 <p className="mt-1 text-[11px] text-slate-400">RSVP tidak hadir</p>
               </div>
 
@@ -556,6 +729,98 @@ _Sistem Registrasi Digital & E-Ticketing_`
                 <p className="mt-2 text-3xl font-black text-white">{summary.souvenir_diambil ?? 0}</p>
                 <p className="mt-1 text-[11px] text-slate-400">{summary.souvenir_belum_diambil ?? (summary.total_peserta - (summary.souvenir_diambil ?? 0))} belum ambil</p>
               </div>
+            </div>
+
+            {/* Detail Daftar Tamu Konfirmasi Hadir */}
+            <div className="rounded-2xl border border-emerald-500/20 bg-slate-950/60 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                  <span>🟢</span>
+                  <span>Detail Tamu Konfirmasi Hadir ({tamuHadir.length} Tamu)</span>
+                </h3>
+                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+                  E-Ticket QR Terbit
+                </span>
+              </div>
+              {tamuHadir.length > 0 ? (
+                <div className="max-h-64 overflow-y-auto pr-1">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px]">
+                        <th className="py-2 px-2.5 w-8">No</th>
+                        <th className="py-2 px-2.5">Nama Tamu</th>
+                        <th className="py-2 px-2.5">Jabatan / Instansi</th>
+                        <th className="py-2 px-2.5">No. WhatsApp</th>
+                        <th className="py-2 px-2.5">Waktu Konfirmasi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {tamuHadir.map((t, idx) => (
+                        <tr key={t.id} className="hover:bg-white/[0.02]">
+                          <td className="py-2 px-2.5 text-slate-500 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="py-2 px-2.5 font-bold text-white">
+                            <div>{t.name}</div>
+                            <div className="font-mono text-[10px] text-cyan-400">{t.id_registrasi}</div>
+                          </td>
+                          <td className="py-2 px-2.5 text-slate-300">{t.pekerjaan || '-'}</td>
+                          <td className="py-2 px-2.5 font-mono text-slate-400">{t.notelp || '-'}</td>
+                          <td className="py-2 px-2.5 text-slate-400 text-[11px]">
+                            {t.waktu_konfirmasi ? new Date(t.waktu_konfirmasi).toLocaleString('id-ID') : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-3 text-center">Belum ada tamu yang mengonfirmasi kehadiran.</p>
+              )}
+            </div>
+
+            {/* Detail Daftar Tamu Konfirmasi Berhalangan Hadir */}
+            <div className="rounded-2xl border border-rose-500/20 bg-slate-950/60 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-2">
+                  <span>🔴</span>
+                  <span>Detail Tamu Konfirmasi Berhalangan ({tamuBerhalangan.length} Tamu)</span>
+                </h3>
+                <span className="rounded-full bg-rose-500/10 border border-rose-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-rose-300">
+                  Menyatakan Tidak Hadir
+                </span>
+              </div>
+              {tamuBerhalangan.length > 0 ? (
+                <div className="max-h-64 overflow-y-auto pr-1">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-white/10 text-slate-400 uppercase tracking-wider text-[10px]">
+                        <th className="py-2 px-2.5 w-8">No</th>
+                        <th className="py-2 px-2.5">Nama Tamu</th>
+                        <th className="py-2 px-2.5">Jabatan / Instansi</th>
+                        <th className="py-2 px-2.5">No. WhatsApp</th>
+                        <th className="py-2 px-2.5">Waktu Konfirmasi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {tamuBerhalangan.map((t, idx) => (
+                        <tr key={t.id} className="hover:bg-white/[0.02]">
+                          <td className="py-2 px-2.5 text-slate-500 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="py-2 px-2.5 font-bold text-white">
+                            <div>{t.name}</div>
+                            <div className="font-mono text-[10px] text-cyan-400">{t.id_registrasi}</div>
+                          </td>
+                          <td className="py-2 px-2.5 text-slate-300">{t.pekerjaan || '-'}</td>
+                          <td className="py-2 px-2.5 font-mono text-slate-400">{t.notelp || '-'}</td>
+                          <td className="py-2 px-2.5 text-slate-400 text-[11px]">
+                            {t.waktu_konfirmasi ? new Date(t.waktu_konfirmasi).toLocaleString('id-ID') : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-3 text-center">Tidak ada tamu yang menyatakan berhalangan hadir.</p>
+              )}
             </div>
 
             {/* Breakdown Harian */}
