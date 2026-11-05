@@ -861,6 +861,7 @@ export function DashboardPage() {
           setIsReportModalOpen(false)
           void loadData()
         }}
+        participants={participants}
       />
     </main>
   )

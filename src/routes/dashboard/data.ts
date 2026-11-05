@@ -305,11 +305,26 @@ export interface RecentLogItem {
   id_registrasi: string | null
 }
 
+export interface TamuRsvpItem {
+  id: number
+  id_registrasi: string
+  name: string
+  notelp: string
+  pekerjaan: string | null
+  waktu_konfirmasi: string | null
+  jalur_undangan?: string
+  gate?: string
+  checkin_status?: number
+  souvenir_status?: string
+}
+
 export interface LaporanHarianResponse {
   success: boolean
   summary: DailyReportSummary
   daily_breakdown: DailyBreakdownItem[]
   recent_logs: RecentLogItem[]
+  tamu_hadir?: TamuRsvpItem[]
+  tamu_berhalangan?: TamuRsvpItem[]
   generated_at: string
 }
 
