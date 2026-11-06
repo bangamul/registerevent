@@ -288,3 +288,19 @@ export async function confirmAttendance(data: {
 
   return response.data
 }
+
+export interface RsvpSettings {
+  status: 'open' | 'closed'
+  is_open: boolean
+  title: string
+  message: string
+  contact_person: string
+  closed_at: string | null
+}
+
+export async function fetchRsvpSettings(): Promise<RsvpSettings> {
+  const response = await axios.get<{ success: boolean; data: RsvpSettings }>(
+    `${API_URL}/RsvpSettings.php`
+  )
+  return response.data.data
+}

@@ -3,6 +3,8 @@ import {
   confirmAttendance,
   checkExistingParticipant,
   searchParticipantsByName,
+  fetchRsvpSettings,
+  type RsvpSettings,
   type Participant,
 } from './data'
 
@@ -27,6 +29,12 @@ export function LandingPage() {
   const [error, setError] = useState('')
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
+  // Status penutupan RSVP & Pencarian E-Ticket
+  const [rsvpSettings, setRsvpSettings] = useState<RsvpSettings | null>(null)
+  const [checkQuery, setCheckQuery] = useState('')
+  const [checkLoading, setCheckLoading] = useState(false)
+  const [checkMsg, setCheckMsg] = useState('')
+
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
 
@@ -47,6 +55,12 @@ export function LandingPage() {
       if (typeof window === 'undefined') return
 
       try {
+        // Ambil status buka/tutup konfirmasi online
+        const settings = await fetchRsvpSettings().catch(() => null)
+        if (settings) {
+          setRsvpSettings(settings)
+        }
+
         const searchParams = new URLSearchParams(window.location.search)
         const token = searchParams.get('token')
         const idReg = searchParams.get('idRegistrasi') || searchParams.get('id')
@@ -107,7 +121,7 @@ export function LandingPage() {
       } catch (err) {
         console.error('Inisialisasi landing page gagal:', err)
       } finally {
-        setView('form')
+        setView((prev) => (prev === 'loading' ? 'form' : prev))
       }
     }
 
@@ -259,6 +273,37 @@ export function LandingPage() {
     }
   }
 
+  // Handler Pencarian E-Ticket saat link RSVP ditutup
+  async function handleCheckTicket(e: React.FormEvent) {
+    e.preventDefault()
+    const q = checkQuery.trim()
+    if (!q) return
+    try {
+      setCheckLoading(true)
+      setCheckMsg('')
+      const found = await checkExistingParticipant(q)
+      if (found) {
+        if (found.rsvp_status === 'confirmed') {
+          setExistingParticipant(found)
+          setSelectedParticipant(found)
+          setView('ticket')
+        } else {
+          setCheckMsg(
+            `Bapak/Ibu ${found.name}, data Anda ditemukan dengan status ${
+              found.rsvp_status === 'declined' ? 'Berhalangan Hadir' : 'Belum Konfirmasi'
+            }. Batas waktu konfirmasi online telah ditutup oleh panitia. Silakan hubungi panitia untuk informasi registrasi langsung di lokasi.`
+          )
+        }
+      } else {
+        setCheckMsg('Data tidak ditemukan. Pastikan ID Registrasi atau nomor WhatsApp yang Anda masukkan sudah terdaftar.')
+      }
+    } catch (err) {
+      setCheckMsg('Terjadi kendala saat memeriksa data. Silakan coba beberapa saat lagi.')
+    } finally {
+      setCheckLoading(false)
+    }
+  }
+
   // TAMPILAN 1: LOADING AWAL
   if (view === 'loading') {
     return (
@@ -299,6 +344,16 @@ export function LandingPage() {
               Menata Ulang Arah Pembangunan Hijau dan Digital
             </p>
           </div>
+
+          {/* Banner info saat RSVP ditutup */}
+          {rsvpSettings?.status === 'closed' && (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-950/40 p-4 text-center text-xs text-amber-200/90 space-y-1">
+              <p className="font-bold text-amber-300">ℹ️ Konfirmasi Kehadiran Online Telah Ditutup</p>
+              <p className="text-[11px] text-slate-300">
+                E-Ticket dan QR Code Anda tetap aktif dan sah digunakan untuk registrasi masuk di lokasi acara.
+              </p>
+            </div>
+          )}
 
           {/* Ticket Card Container */}
           <div className="overflow-hidden rounded-[2.5rem] border border-amber-500/30 bg-gradient-to-b from-slate-900/90 to-slate-950/95 shadow-2xl backdrop-blur-xl">
@@ -377,13 +432,15 @@ export function LandingPage() {
                   Cetak / Simpan E-Ticket
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setView('form')}
-                  className="w-full sm:w-auto rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition"
-                >
-                  Kembali ke Form
-                </button>
+                {rsvpSettings?.status !== 'closed' && (
+                  <button
+                    type="button"
+                    onClick={() => setView('form')}
+                    className="w-full sm:w-auto rounded-2xl border border-slate-700 bg-slate-900 px-5 py-4 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                  >
+                    Kembali ke Form
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -414,15 +471,115 @@ export function LandingPage() {
             Kami sangat menghargai konfirmasi Anda. Semoga pada kesempatan acara berikutnya kita dapat berjumpa kembali.
           </div>
 
-          <div className="pt-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => setView('form')}
-              className="text-xs text-amber-400 hover:text-amber-300 underline font-medium transition"
-            >
-              Berubah pikiran? Klik di sini untuk mengonfirmasi kehadiran
-            </button>
+          {rsvpSettings?.status !== 'closed' && (
+            <div className="pt-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setView('form')}
+                className="text-xs text-amber-400 hover:text-amber-300 underline font-medium transition"
+              >
+                Berubah pikiran? Klik di sini untuk mengonfirmasi kehadiran
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    )
+  }
+
+  // TAMPILAN JIKA PORTAL KONFIRMASI DITUTUP OLEH PANITIA / KLIEN
+  if (rsvpSettings?.status === 'closed') {
+    return (
+      <main className="relative min-h-screen flex items-center justify-center bg-[#070b14] px-4 py-12 text-white">
+        {/* Background Ambient Glows */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute left-[20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-rose-600/10 blur-[150px]" />
+          <div className="absolute bottom-[-10%] right-[20%] h-[400px] w-[400px] rounded-full bg-amber-600/10 blur-[150px]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-xl space-y-6">
+          {/* Header Badge */}
+          <div className="text-center space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/40 bg-rose-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-300 shadow-sm">
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+              </svg>
+              <span>Portal Konfirmasi Ditutup</span>
+            </span>
+
+            <h1 className="text-2xl font-black tracking-tight sm:text-3xl text-white font-serif">
+              Peluncuran Buku: Timah, Manusia, dan Masa Depan
+            </h1>
+            <p className="text-xs text-amber-100/70 font-sans tracking-wide">
+              Menata Ulang Arah Pembangunan Hijau dan Digital
+            </p>
+          </div>
+
+          {/* Main Card Announcement */}
+          <div className="overflow-hidden rounded-3xl border border-slate-700/80 bg-slate-900/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+            <div className="border-b border-slate-800 pb-5 text-center space-y-2">
+              <h2 className="text-xl font-bold text-white font-serif">
+                {rsvpSettings.title || 'Konfirmasi Kehadiran Telah Ditutup'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+                {rsvpSettings.message ||
+                  'Batas waktu konfirmasi kehadiran secara online untuk acara Peluncuran Buku telah ditutup oleh panitia pelaksana. Bagi Bapak/Ibu tamu undangan yang telah melakukan konfirmasi kehadiran sebelumnya, e-Ticket dan QR Code tetap dapat diakses di bawah ini.'}
+              </p>
+            </div>
+
+            {/* Event Time & Venue Info */}
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 p-4 text-center text-xs text-slate-300 space-y-1">
+              <p className="font-bold text-amber-300">Waktu & Tempat Acara:</p>
+              <p className="text-white font-semibold">Senin, 9 November 2026 • 15.00 - 19.00 WIB</p>
+              <p className="text-slate-400">Sumba Room, Hotel Borobudur Jakarta</p>
+            </div>
+
+            {/* Cek / Ambil E-Ticket Bagi yang Sudah Konfirmasi */}
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-5 space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-cyan-300 uppercase tracking-wider">
+                  Sudah Pernah Konfirmasi Hadir?
+                </p>
+                <p className="text-xs text-slate-400">
+                  Masukkan ID Registrasi atau nomor WhatsApp Anda untuk membuka e-Ticket & QR Code:
+                </p>
+              </div>
+
+              <form onSubmit={handleCheckTicket} className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={checkQuery}
+                    onChange={(e) => {
+                      setCheckQuery(e.target.value)
+                      setCheckMsg('')
+                    }}
+                    placeholder="Contoh: 0812xxxx atau REG-XXXX"
+                    className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={checkLoading || !checkQuery.trim()}
+                    className="inline-flex items-center justify-center rounded-xl bg-cyan-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 hover:bg-cyan-400 transition active:scale-95 disabled:opacity-50"
+                  >
+                    {checkLoading ? 'Memeriksa...' : 'Buka E-Ticket'}
+                  </button>
+                </div>
+
+                {checkMsg && (
+                  <p className="text-xs text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 leading-relaxed">
+                    {checkMsg}
+                  </p>
+                )}
+              </form>
+            </div>
+
+            {/* Contact Note */}
+            <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800/80 space-y-1">
+              <p>Untuk pertanyaan dan bantuan di lokasi acara, silakan hubungi:</p>
+              <p className="font-semibold text-slate-300">{rsvpSettings.contact_person || 'Panitia Pelaksana'}</p>
+            </div>
           </div>
         </div>
       </main>

@@ -5,6 +5,24 @@ header('Content-Type: application/json');
 
 require_once 'db.php';
 
+// Cek apakah konfirmasi online ditutup oleh panitia
+try {
+    $stmtCheckRsvp = $pdo->query("SELECT setting_value FROM event_settings WHERE setting_key = 'rsvp_status' LIMIT 1");
+    if ($stmtCheckRsvp) {
+        $currentRsvpStatus = $stmtCheckRsvp->fetchColumn();
+        if ($currentRsvpStatus === 'closed') {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Mohon maaf, batas waktu konfirmasi kehadiran secara online telah ditutup oleh panitia.'
+            ]);
+            exit;
+        }
+    }
+} catch (Exception $e) {
+    // Abaikan jika tabel belum ada
+}
+
 $phone = trim($_POST['notelp'] ?? $_POST['phone'] ?? '');
 $idRegistrasi = trim($_POST['id_registrasi'] ?? '');
 $name = trim($_POST['name'] ?? '');
