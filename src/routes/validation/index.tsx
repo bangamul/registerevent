@@ -2,32 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { saveRegistrationId } from '../../lib/registration-session'
 import { useCurrentUser } from '../../lib/use-current-user'
-import { findParticipant, checkinParticipant } from './data'
+import {
+  findParticipant,
+  searchParticipantsByName,
+  checkinParticipant,
+  type Participant,
+} from './data'
 import axios from 'axios'
 
 export function ValidationPage() {
   const [registrationId, setRegistrationId] = useState('')
+  const [inputMode, setInputMode] = useState<'id' | 'name'>('id')
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
+  const [suggestions, setSuggestions] = useState<Participant[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
-
-  // State Sesi (1 atau 2) - simpan ke localStorage biar ga reset saat refresh
-  const [activeSession, setActiveSession] = useState<1 | 2>(() => {
-    const saved = localStorage.getItem('validation_active_session')
-    return saved ? (Number(saved) as 1 | 2) : 1
-  })
-
-  // Update localStorage saat sesi diganti
-  const handleSessionChange = (session: 1 | 2) => {
-    setActiveSession(session)
-    localStorage.setItem('validation_active_session', String(session))
-    // Reset state jika ada pesan gantung
-    setError('')
-    setSuccessMessage('')
-    setRegistrationId('')
-    lastAttemptedId.current = ''
-    inputRef.current?.focus()
-  }
 
   // Ref untuk cegah infinite loop saat ID ngasal / ter-scan berulang
   const lastAttemptedId = useRef('')
@@ -43,6 +34,28 @@ export function ValidationPage() {
     }
   }, [loading, successMessage, error])
 
+  useEffect(() => {
+    if (inputMode !== 'name' || !registrationId.trim() || selectedParticipant) {
+      return
+    }
+
+    let active = true
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await searchParticipantsByName(registrationId.trim())
+        if (active) setSuggestions(results)
+      } finally {
+        if (active) setIsSearching(false)
+      }
+    }, 150)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [inputMode, registrationId, selectedParticipant])
+
   // Timer reset 3 detik kalau Check-in Ulang Sukses
   useEffect(() => {
     if (!successMessage) return
@@ -50,6 +63,8 @@ export function ValidationPage() {
     const timer = setTimeout(() => {
       setSuccessMessage('')
       setRegistrationId('')
+      setSelectedParticipant(null)
+      setSuggestions([])
       setError('')
       lastAttemptedId.current = ''
       inputRef.current?.focus()
@@ -65,6 +80,8 @@ export function ValidationPage() {
     const timer = setTimeout(() => {
       setError('')
       setRegistrationId('')
+      setSelectedParticipant(null)
+      setSuggestions([])
       lastAttemptedId.current = ''
       inputRef.current?.focus()
     }, 3000)
@@ -74,10 +91,16 @@ export function ValidationPage() {
 
   // Core Processing Function
   const processValidation = useCallback(
-    async (idToProcess: string) => {
+    async (idToProcess: string, participant?: Participant) => {
       const value = idToProcess.trim()
 
-      if (!value || loading || successMessage || error) return
+      if (
+        !value ||
+        loading ||
+        successMessage ||
+        error ||
+        lastAttemptedId.current === value
+      ) return
 
       if (!currentUser) {
         navigate({ to: '/login' })
@@ -85,7 +108,6 @@ export function ValidationPage() {
       }
 
       // Lock ID agar tidak diproses berulang
-      // eslint-disable-next-line react-hooks/immutability
       lastAttemptedId.current = value
 
       setError('')
@@ -93,59 +115,57 @@ export function ValidationPage() {
       setLoading(true)
 
       try {
-        const peserta = await findParticipant(value)
+        const peserta = participant ?? await findParticipant(value)
 
         if (!peserta) {
-          setError('ID anda tidak terdaftar')
+          setError(inputMode === 'name' ? 'Peserta tidak ditemukan' : 'ID anda tidak terdaftar')
           return
         }
 
-        // 💡 BROADCAST KE TV PROFILE AGAR MUNCUL (tanpa peduli waktu_hadir)
-        const channel = new BroadcastChannel('event_checkin_channel')
-        channel.postMessage({
-          type: 'CHECK_IN_SUCCESS',
-          participant: peserta,
-        })
-        channel.close()
+        // 💡 Broadcast awal ke TV Profile: tampilkan profil peserta segera
+        const broadcastToProfile = (data: typeof peserta) => {
+          const channel = new BroadcastChannel('event_checkin_channel')
+          channel.postMessage({ type: 'CHECK_IN_SUCCESS', participant: data })
+          channel.close()
+        }
 
-        // 💡 VALIDASI HAK AKSES SESI 2
-        if (activeSession === 2) {
-          const rolePerm = String(peserta.role_permission ?? '')
-          if (rolePerm !== '2') {
-            setError('Akses Ditolak: Peserta tidak terdaftar untuk Sesi 2')
-            return
-          }
+        // Tampilkan profil dulu (data belum update)
+        broadcastToProfile(peserta)
 
-          // SCENARIO SESI 2: Catat log & isi waktu_sesi_2 (di backend)
-          saveRegistrationId(currentUser.id, peserta.id_registrasi) // Update layar Profile (TV)
-          await checkinParticipant(value, String(currentUser.id), 2)
-          setSuccessMessage(`Check-in Sesi 2 Berhasil: ${peserta.name}`)
+        if (peserta.waktu_hadir) {
+          // Sudah pernah validasi -> Catat Log Check-in
+          saveRegistrationId(currentUser.id, peserta.id_registrasi)
+          const updatedSesi1 = await checkinParticipant(
+            peserta.id_registrasi,
+            String(currentUser.id),
+            1,
+          )
+          broadcastToProfile(updatedSesi1) // 💡 Broadcast ulang dengan data terbaru
+          setSuccessMessage(`Check-in Sesi 1 Berhasil: ${peserta.name}`)
         } else {
-          // SCENARIO SESI 1:
-          if (peserta.waktu_hadir) {
-            // Sudah pernah validasi (waktu_hadir ada) -> Catat Log Check-in
-            saveRegistrationId(currentUser.id, peserta.id_registrasi) // Update layar Profile (TV)
-            await checkinParticipant(value, String(currentUser.id), 1)
-            setSuccessMessage(`Check-in Sesi 1 Berhasil: ${peserta.name}`)
-          } else {
-            // Belum pernah validasi (waktu_hadir null) -> Simpan session & lanjut ke /form
-            saveRegistrationId(currentUser.id, peserta.id_registrasi)
-            navigate({ to: '/form' })
-          }
+          // Belum pernah validasi -> Langsung check-in tanpa redirect ke /form
+          saveRegistrationId(currentUser.id, peserta.id_registrasi)
+          const updatedFirst = await checkinParticipant(
+            peserta.id_registrasi,
+            String(currentUser.id),
+            1,
+          )
+          broadcastToProfile(updatedFirst) // 💡 Broadcast dengan waktu_hadir terisi
+          setSuccessMessage(`Validasi Berhasil: ${peserta.name}`)
         }
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
-          setError('ID anda tidak terdaftar')
+          setError(inputMode === 'name' ? 'Peserta tidak ditemukan' : 'ID anda tidak terdaftar')
         } else if (axios.isAxiosError(err)) {
-          setError(err.response?.data?.message ?? 'ID anda tidak terdaftar')
+          setError(err.response?.data?.message ?? 'Gagal memvalidasi peserta')
         } else {
-          setError('ID anda tidak terdaftar')
+          setError(err instanceof Error ? err.message : 'Gagal memvalidasi peserta')
         }
       } finally {
         setLoading(false)
       }
     },
-    [loading, successMessage, error, currentUser, navigate, activeSession],
+    [loading, successMessage, error, currentUser, navigate, inputMode],
   )
 
   // AUTO-SUBMIT READINESS CHECK
@@ -154,6 +174,7 @@ export function ValidationPage() {
     const isValidFormat = trimmedId.length >= 5
 
     if (
+      inputMode === 'id' &&
       isValidFormat &&
       !loading &&
       !successMessage &&
@@ -162,11 +183,36 @@ export function ValidationPage() {
     ) {
       processValidation(trimmedId)
     }
-  }, [registrationId, loading, successMessage, error, processValidation])
+  }, [registrationId, inputMode, loading, successMessage, error, processValidation])
+
+  function handleInputModeChange(mode: 'id' | 'name') {
+    setInputMode(mode)
+    setRegistrationId('')
+    setSelectedParticipant(null)
+    setSuggestions([])
+    setIsSearching(false)
+    setError('')
+    setSuccessMessage('')
+    lastAttemptedId.current = ''
+    inputRef.current?.focus()
+  }
+
+  function handleSelectParticipant(participant: Participant) {
+    setRegistrationId(participant.name)
+    setSelectedParticipant(participant)
+    setSuggestions([])
+    void processValidation(participant.id_registrasi, participant)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (lastAttemptedId.current !== registrationId.trim()) {
+    if (inputMode === 'name') {
+      if (selectedParticipant) {
+        void processValidation(selectedParticipant.id_registrasi, selectedParticipant)
+      } else {
+        setError('Silakan pilih nama peserta dari daftar yang muncul.')
+      }
+    } else if (lastAttemptedId.current !== registrationId.trim()) {
       processValidation(registrationId)
     }
   }
@@ -209,86 +255,122 @@ export function ValidationPage() {
 
       <section className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
 
-        {/* SESSION SWITCHER TOGGLE */}
-        <div className="mb-6 flex rounded-2xl bg-slate-900 p-1.5 border border-slate-800">
-          <button
-            type="button"
-            onClick={() => handleSessionChange(1)}
-            className={`flex-1 rounded-xl py-2.5 text-xs font-semibold transition ${
-              activeSession === 1
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
+        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-1.5 text-center text-xs font-semibold text-slate-950 hidden">
+          <span className="inline-block rounded-xl bg-amber-500 px-4 py-2.5 shadow-md">
             Sesi 1
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSessionChange(2)}
-            className={`flex-1 rounded-xl py-2.5 text-xs font-semibold transition ${
-              activeSession === 2
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Sesi 2 (Khusus Role 2)
-          </button>
+          </span>
         </div>
 
         <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400/80">
-            Validation Station • Mode Sesi {activeSession}
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400/80 hidden">
+            Validation Station • Mode Sesi 1
           </p>
 
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Scan ID Registrasi
+            Validasi Peserta
           </h1>
 
           <p className="mt-2 leading-7 text-slate-400 text-sm">
-            {activeSession === 1
-              ? 'Scanner 2D aktif untuk semua peserta umum & registrasi awal.'
-              : 'Scanner 2D aktif khusus peserta Sesi 2 (Role Permission 2).'}
+            Scan ID registrasi atau cari peserta berdasarkan nama lengkap.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
+            <div className="mb-4 flex rounded-xl border border-slate-800 bg-slate-900 p-1">
+              <button
+                type="button"
+                disabled={loading || !!successMessage || !!error}
+                onClick={() => handleInputModeChange('id')}
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  inputMode === 'id'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ID Registrasi
+              </button>
+              <button
+                type="button"
+                disabled={loading || !!successMessage || !!error}
+                onClick={() => handleInputModeChange('name')}
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  inputMode === 'name'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Nama Lengkap
+              </button>
+            </div>
             <label
-              htmlFor="registration-id"
+              htmlFor="participant-input"
               className="mb-2 block text-sm font-medium text-slate-200"
             >
-              ID Registrasi
+              {inputMode === 'id' ? 'ID Registrasi' : 'Nama Lengkap'}
             </label>
 
             <div className="relative">
               <input
                 ref={inputRef}
-                id="registration-id"
-                name="registrationId"
+                id="participant-input"
+                name={inputMode === 'id' ? 'registrationId' : 'participantName'}
                 type="text"
+                inputMode={inputMode === 'id' ? 'none' : 'text'}
                 value={registrationId}
                 disabled={loading || !!successMessage || !!error}
                 onChange={(event) => {
                   setRegistrationId(event.target.value)
+                  setSelectedParticipant(null)
+                  setSuggestions([])
+                  setIsSearching(false)
                   setError('')
                 }}
-                placeholder="Scan QR Code Peserta..."
+                placeholder={inputMode === 'id' ? 'Scan QR Code Peserta...' : 'Ketik nama peserta...'}
                 autoComplete="off"
                 autoFocus
                 className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-4 pr-12 text-white outline-none transition placeholder:text-slate-600 focus:border-white/50 focus:ring-2 focus:ring-white/10 disabled:opacity-50"
               />
 
-              <span
-                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
-                aria-hidden="true"
-              >
-                ⌁
-              </span>
+              {inputMode === 'id' ? (
+                <span
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
+                  aria-hidden="true"
+                >
+                  ⌁
+                </span>
+              ) : (
+                <>
+                  {isSearching && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                      Mencari...
+                    </span>
+                  )}
+                  {suggestions.length > 0 && (
+                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                      {suggestions.map((participant) => (
+                        <button
+                          key={participant.id}
+                          type="button"
+                          onClick={() => handleSelectParticipant(participant)}
+                          className="block w-full rounded-lg px-3 py-3 text-left hover:bg-slate-800"
+                        >
+                          <span className="block font-semibold text-white">{participant.name}</span>
+                          <span className="mt-1 block text-xs text-slate-400">
+                            {participant.pekerjaan || 'Tamu Undangan'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <p className="mt-2 text-xs text-slate-500">
-              Sistem otomatis memproses registrasi atau log check-in saat scanned.
+              {inputMode === 'id'
+                ? 'Sistem otomatis memproses registrasi atau log check-in saat scanned.'
+                : 'Pilih nama dari hasil pencarian untuk memproses check-in.'}
             </p>
 
             {/* Banner Sukses Log Check-In (Auto Clear 3 Detik) */}
