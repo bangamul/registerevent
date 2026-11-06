@@ -282,7 +282,7 @@ export function SouvenirPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between bg-slate-950 px-4 py-8 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-8 text-white">
       {/* BACKGROUND DECORATION */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-amber-500/10 blur-[120px]" />
