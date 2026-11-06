@@ -372,3 +372,38 @@ export async function updateWaStatusManual(
   }
 }
 
+export interface RsvpSettings {
+  status: 'open' | 'closed'
+  is_open: boolean
+  title: string
+  message: string
+  contact_person: string
+  closed_at: string | null
+}
+
+export async function fetchRsvpSettings(): Promise<RsvpSettings> {
+  const response = await axios.get<{ success: boolean; data: RsvpSettings }>(
+    `${API_URL}/RsvpSettings.php`
+  )
+  return response.data.data
+}
+
+export async function updateRsvpSettings(payload: {
+  rsvp_status?: 'open' | 'closed'
+  rsvp_closed_title?: string
+  rsvp_closed_message?: string
+  rsvp_contact_person?: string
+}): Promise<RsvpSettings> {
+  const formData = new FormData()
+  if (payload.rsvp_status) formData.append('rsvp_status', payload.rsvp_status)
+  if (payload.rsvp_closed_title) formData.append('rsvp_closed_title', payload.rsvp_closed_title)
+  if (payload.rsvp_closed_message) formData.append('rsvp_closed_message', payload.rsvp_closed_message)
+  if (payload.rsvp_contact_person) formData.append('rsvp_contact_person', payload.rsvp_contact_person)
+
+  const response = await axios.post<{ success: boolean; data: RsvpSettings }>(
+    `${API_URL}/RsvpSettings.php`,
+    formData
+  )
+  return response.data.data
+}
+

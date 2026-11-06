@@ -8,10 +8,13 @@ import {
   matchesSesi,
   updateJalurUndangan,
   updateWaStatusManual,
+  fetchRsvpSettings,
+  type RsvpSettings,
   type Participant,
 } from './data'
 import { WaBlastModal } from '../../components/WaBlastModal'
 import { DailyReportModal } from '../../components/DailyReportModal'
+import { RsvpControlModal } from '../../components/RsvpControlModal'
 
 type SortOption = 'name' | 'latest' | 'oldest'
 type SesiFilter = 'all' | number
@@ -32,6 +35,8 @@ export function DashboardPage() {
   const [error, setError] = useState('')
   const [isWaModalOpen, setIsWaModalOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isRsvpModalOpen, setIsRsvpModalOpen] = useState(false)
+  const [rsvpSettings, setRsvpSettings] = useState<RsvpSettings | null>(null)
 
   // Seleksi masal & domain RSVP
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -60,13 +65,17 @@ export function DashboardPage() {
       setLoading(true)
       setError('')
 
-      const [participantData, logData] = await Promise.all([
+      const [participantData, logData, rsvpData] = await Promise.all([
         findParticipants(),
         getLastActivityLogs(),
+        fetchRsvpSettings().catch(() => null),
       ])
 
       setParticipants(participantData)
       setLastLogs(logData)
+      if (rsvpData) {
+        setRsvpSettings(rsvpData)
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -435,6 +444,30 @@ export function DashboardPage() {
               className="inline-flex items-center justify-center rounded-xl border border-cyan-500/40 bg-cyan-500/20 px-4 py-2.5 text-sm font-semibold text-cyan-300 transition hover:border-cyan-500/60 hover:bg-cyan-500/30 active:scale-95"
             >
               Laporan Harian
+            </button>
+
+            {/* Tombol Status Buka/Tutup Link RSVP /landing */}
+            <button
+              type="button"
+              onClick={() => setIsRsvpModalOpen(true)}
+              title="Atur buka atau tutup link konfirmasi (/landing) untuk tamu"
+              className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-semibold shadow-sm transition active:scale-95 ${
+                rsvpSettings?.status === 'closed'
+                  ? 'border-rose-500/60 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
+                  : 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+              }`}
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  rsvpSettings?.status === 'closed' ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'
+                }`}
+              />
+              <span>
+                Link RSVP:{' '}
+                <strong className={rsvpSettings?.status === 'closed' ? 'text-rose-400' : 'text-emerald-400'}>
+                  {rsvpSettings?.status === 'closed' ? 'DITUTUP' : 'BUKA'}
+                </strong>
+              </span>
             </button>
 
             {/* Tombol Segarkan Data */}
@@ -862,6 +895,18 @@ export function DashboardPage() {
           void loadData()
         }}
         participants={participants}
+      />
+
+      {/* Modal Kontrol Status RSVP */}
+      <RsvpControlModal
+        isOpen={isRsvpModalOpen}
+        onClose={() => setIsRsvpModalOpen(false)}
+        settings={rsvpSettings}
+        onUpdate={(newSettings) => {
+          setRsvpSettings(newSettings)
+        }}
+        publicOrigin={publicOrigin}
+        showToast={showToast}
       />
     </main>
   )
