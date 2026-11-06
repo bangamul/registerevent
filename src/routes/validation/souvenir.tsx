@@ -6,12 +6,18 @@ import {
   fetchSouvenirSettings,
   updateSouvenirSettings,
   resetSouvenirClaim,
+  searchParticipantsByName,
   type SouvenirSettings,
   type SouvenirClaimResult,
+  type Participant,
 } from './data'
 
 export function SouvenirPage() {
   const [registrationId, setRegistrationId] = useState('')
+  const [inputMode, setInputMode] = useState<'id' | 'name'>('id')
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
+  const [suggestions, setSuggestions] = useState<Participant[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SouvenirClaimResult | null>(null)
   const [settings, setSettings] = useState<SouvenirSettings | null>(null)
@@ -97,6 +103,28 @@ export function SouvenirPage() {
     }
   }, [loading, result, showSettingsModal])
 
+  useEffect(() => {
+    if (inputMode !== 'name' || !registrationId.trim() || selectedParticipant) {
+      return
+    }
+
+    let active = true
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await searchParticipantsByName(registrationId.trim())
+        if (active) setSuggestions(results)
+      } finally {
+        if (active) setIsSearching(false)
+      }
+    }, 150)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [inputMode, registrationId, selectedParticipant])
+
   // Timer auto dismiss result card
   useEffect(() => {
     if (!result) return
@@ -105,6 +133,8 @@ export function SouvenirPage() {
     const timer = setTimeout(() => {
       setResult(null)
       setRegistrationId('')
+      setSelectedParticipant(null)
+      setSuggestions([])
       lastAttemptedId.current = ''
       inputRef.current?.focus()
     }, duration)
@@ -163,15 +193,49 @@ export function SouvenirPage() {
   // Auto-submit saat QR code di-scan (panjang minimal 5 karakter)
   useEffect(() => {
     const trimmed = registrationId.trim()
-    if (trimmed.length >= 5 && !loading && !result && lastAttemptedId.current !== trimmed) {
+    if (
+      inputMode === 'id' &&
+      trimmed.length >= 5 &&
+      !loading &&
+      !result &&
+      lastAttemptedId.current !== trimmed
+    ) {
       processSouvenirScan(trimmed)
     }
-  }, [registrationId, loading, result, processSouvenirScan])
+  }, [registrationId, inputMode, loading, result, processSouvenirScan])
+
+  function handleInputModeChange(mode: 'id' | 'name') {
+    setInputMode(mode)
+    setRegistrationId('')
+    setSelectedParticipant(null)
+    setSuggestions([])
+    setIsSearching(false)
+    setResult(null)
+    lastAttemptedId.current = ''
+    inputRef.current?.focus()
+  }
+
+  function handleSelectParticipant(participant: Participant) {
+    setRegistrationId(participant.name)
+    setSelectedParticipant(participant)
+    setSuggestions([])
+    void processSouvenirScan(participant.id_registrasi)
+  }
 
   // Submit manual lewat Enter
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (registrationId.trim() && lastAttemptedId.current !== registrationId.trim()) {
+    if (inputMode === 'name') {
+      if (selectedParticipant) {
+        processSouvenirScan(selectedParticipant.id_registrasi)
+      } else {
+        setResult({
+          success: false,
+          code: 'NOT_FOUND',
+          message: 'Silakan pilih nama peserta dari daftar yang muncul.',
+        })
+      }
+    } else if (registrationId.trim() && lastAttemptedId.current !== registrationId.trim()) {
       processSouvenirScan(registrationId.trim())
     }
   }
@@ -463,21 +527,82 @@ export function SouvenirPage() {
             </div>
           )}
 
-          {/* INPUT FORM SCANNER */}
+          {/* INPUT FORM SCANNER OR NAME SEARCH */}
           <form onSubmit={handleSubmit} className="mt-8">
+            <div className="mb-4 flex rounded-xl border border-slate-800 bg-slate-900 p-1">
+              <button
+                type="button"
+                disabled={loading || Boolean(result)}
+                onClick={() => handleInputModeChange('id')}
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  inputMode === 'id'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ID Registrasi
+              </button>
+              <button
+                type="button"
+                disabled={loading || Boolean(result)}
+                onClick={() => handleInputModeChange('name')}
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  inputMode === 'name'
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Nama Lengkap
+              </button>
+            </div>
             <div className="relative">
               <input
                 ref={inputRef}
+                id="souvenir-participant-input"
+                name={inputMode === 'id' ? 'registrationId' : 'participantName'}
                 type="text"
+                inputMode={inputMode === 'id' ? 'none' : 'text'}
                 value={registrationId}
-                onChange={(e) => setRegistrationId(e.target.value)}
+                onChange={(e) => {
+                  setRegistrationId(e.target.value)
+                  setSelectedParticipant(null)
+                  setSuggestions([])
+                  setIsSearching(false)
+                }}
                 disabled={loading || Boolean(result)}
-                placeholder="Scan QR Code E-Ticket Peserta..."
+                placeholder={inputMode === 'id' ? 'Scan QR Code E-Ticket Peserta...' : 'Ketik nama peserta...'}
                 className="w-full rounded-2xl border-2 border-amber-500/40 bg-slate-900/90 px-5 py-4 pl-12 text-base font-semibold text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-500/20 disabled:opacity-50"
               />
-              <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-amber-400">
-                🔍
-              </div>
+              {inputMode === 'id' ? (
+                <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-amber-400">
+                  🔍
+                </div>
+              ) : (
+                <>
+                  {isSearching && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                      Mencari...
+                    </span>
+                  )}
+                  {suggestions.length > 0 && (
+                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                      {suggestions.map((participant) => (
+                        <button
+                          key={participant.id}
+                          type="button"
+                          onClick={() => handleSelectParticipant(participant)}
+                          className="block w-full rounded-lg px-3 py-3 text-left hover:bg-slate-800"
+                        >
+                          <span className="block font-semibold text-white">{participant.name}</span>
+                          <span className="mt-1 block text-xs text-slate-400">
+                            {participant.pekerjaan || 'Tamu Undangan'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
               {loading && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                   <span className="flex h-5 w-5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
@@ -486,7 +611,9 @@ export function SouvenirPage() {
             </div>
 
             <p className="mt-2.5 text-center text-xs text-slate-500">
-              💡 Arahkan pemindai barcode / QR scanner gun ke tiket tamu, atau ketik ID dan tekan Enter.
+              {inputMode === 'id'
+                ? '💡 Arahkan scanner barcode / QR ke tiket tamu. ID akan diproses otomatis.'
+                : 'Pilih nama dari hasil pencarian untuk memproses pengambilan souvenir.'}
             </p>
           </form>
 

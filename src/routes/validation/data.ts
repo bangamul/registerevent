@@ -54,6 +54,21 @@ export async function findParticipant(
   return response.data.data
 }
 
+export async function searchParticipantsByName(query: string): Promise<Participant[]> {
+  if (!query || query.trim().length === 0) return []
+  try {
+    const response = await axios.get<{ success: boolean; data: Participant[] }>(
+      `${API_URL}/SearchPesertaNama.php`,
+      { params: { q: query.trim() } }
+    )
+    if (!response.data.success || !Array.isArray(response.data.data)) return []
+    return response.data.data
+  } catch {
+    return []
+  }
+}
+
+
 // Helper baru untuk Clock Out / Checkout Peserta
 export async function checkoutParticipant(
   idRegistrasi: string,
