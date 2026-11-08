@@ -6,6 +6,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const isAuthenticatedPage = Boolean(getCurrentUserId()) && location.pathname !== '/login' && location.pathname !== '/'
+  const hideLogoutButton = ['/validation', '/validation/checkout', '/validation/souvenir', '/profile'].includes(location.pathname)
 
   function handleLogout() {
     clearCurrentUser()
@@ -14,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-screen">
-      {isAuthenticatedPage && (
+      {isAuthenticatedPage && !hideLogoutButton && (
         <button
           type="button"
           onClick={handleLogout}
