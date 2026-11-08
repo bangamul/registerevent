@@ -21,6 +21,7 @@ export interface Participant {
   waktu_souvenir?: string | null
   souvenir_status?: string | null
   souvenir_petugas?: string | null
+  seating_arrangement?: string | null
 }
 
 export interface ParticipantResponse {

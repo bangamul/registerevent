@@ -11,6 +11,7 @@ $email = trim($_POST['email'] ?? '');
 $pekerjaan = trim($_POST['pekerjaan'] ?? '');
 $gate = trim($_POST['gate'] ?? '1');
 $role_permission = trim($_POST['role_permission'] ?? '1');
+$seatingArrangement = trim($_POST['seating_arrangement'] ?? $_POST['seating_arrange'] ?? '');
 
 // Validasi Wajib
 if ($name === '') {
@@ -78,8 +79,8 @@ try {
     $idIndependent = 'IND-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
 
     $stmt = $pdo->prepare("
-        INSERT INTO user_peserta (id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, gate, role_permission, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        INSERT INTO user_peserta (id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, gate, role_permission, seating_arrangement, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     ");
 
     $stmt->execute([
@@ -91,13 +92,14 @@ try {
         $fotoPath,
         $pekerjaan !== '' ? $pekerjaan : null,
         $gate !== '' ? $gate : '1',
-        $role_permission !== '' ? $role_permission : '1'
+        $role_permission !== '' ? $role_permission : '1',
+        $seatingArrangement !== '' ? $seatingArrangement : null
     ]);
 
     $newId = $pdo->lastInsertId();
 
     $stmt = $pdo->prepare("
-        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, gate, role_permission, status 
+        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, gate, role_permission, seating_arrangement, status 
         FROM user_peserta WHERE id = ? LIMIT 1
     ");
     $stmt->execute([$newId]);
