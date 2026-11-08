@@ -12,6 +12,7 @@ $email = trim($_POST['email'] ?? '');
 $pekerjaan = trim($_POST['pekerjaan'] ?? '');
 $gate = trim($_POST['gate'] ?? '1');
 $role_permission = trim($_POST['role_permission'] ?? '1');
+$seatingArrangement = trim($_POST['seating_arrangement'] ?? $_POST['seating_arrange'] ?? '');
 
 // Validasi input
 if ($idRegistrasi === '') {
@@ -47,7 +48,8 @@ try {
             email = ?, 
             pekerjaan = ?, 
             gate = ?,
-            role_permission = ?
+            role_permission = ?,
+            seating_arrangement = ?
         WHERE id = ?
     ");
 
@@ -58,12 +60,13 @@ try {
         $pekerjaan !== '' ? $pekerjaan : null,
         $gate !== '' ? (int) $gate : 1,
         $role_permission !== '' ? (int) $role_permission : 1,
+        $seatingArrangement !== '' ? $seatingArrangement : null,
         $peserta['id']
     ]);
 
     // Ambil data terbaru untuk dikembalikan ke frontend
     $stmt = $pdo->prepare("
-        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, gate, role_permission, status 
+        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, gate, role_permission, seating_arrangement, status 
         FROM user_peserta WHERE id = ? LIMIT 1
     ");
     $stmt->execute([$peserta['id']]);

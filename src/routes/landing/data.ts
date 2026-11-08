@@ -22,6 +22,7 @@ export type Participant = {
   rsvp_status?: 'pending' | 'confirmed' | 'declined' | string
   waktu_souvenir?: string | null
   souvenir_status?: string | null
+  seating_arrangement?: string | null
 }
 
 interface ParticipantResponse {

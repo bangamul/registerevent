@@ -361,6 +361,11 @@ export function ValidationPage() {
                           <span className="block font-semibold text-white">{participant.name}</span>
                           <span className="mt-1 block text-xs text-slate-400">
                             {participant.pekerjaan || 'Tamu Undangan'}
+                            {participant.seating_arrangement && (
+                              <span className="ml-2 font-semibold text-amber-300">
+                                • 🪑 {participant.seating_arrangement}
+                              </span>
+                            )}
                           </span>
                         </button>
                       ))}

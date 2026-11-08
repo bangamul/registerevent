@@ -39,7 +39,8 @@ $query = "
         COALESCE(jalur_undangan, 'blast') as jalur_undangan,
         waktu_souvenir,
         COALESCE(souvenir_status, 'unclaimed') as souvenir_status,
-        souvenir_petugas
+        souvenir_petugas,
+        seating_arrangement
     FROM user_peserta
     WHERE 
 ";

@@ -272,6 +272,7 @@ export function DashboardPage() {
       'ID Registrasi',
       'Nama Lengkap',
       'Jabatan / Instansi',
+      'Nomor Meja / Seating',
       'No. WhatsApp',
       'Email',
       'Gate',
@@ -304,6 +305,7 @@ export function DashboardPage() {
         p.id_registrasi || '-',
         p.name || '-',
         p.pekerjaan || '-',
+        p.seating_arrangement || '-',
         p.notelp ? `'${p.notelp}` : '-',
         p.email || '-',
         p.gate ? `Gate ${p.gate}` : '-',
@@ -733,6 +735,7 @@ export function DashboardPage() {
                       </th>
                       <th className="px-3 py-4 w-12">No</th>
                       <th className="px-4 py-4">Tamu & Undangan</th>
+                      <th className="px-3 py-4">Meja / Seating</th>
                       <th className="px-3 py-4">Jalur Distribusi</th>
                       <th className="px-3 py-4">Kehadiran Venue</th>
                       <th className="px-4 py-4 text-right">Aksi Undangan</th>
@@ -1044,6 +1047,17 @@ function ParticipantTableRow({
           {participant.pekerjaan ? ` • ${participant.pekerjaan}` : ''}
           {participant.notelp ? ` • 📞 ${participant.notelp}` : ''}
         </p>
+      </td>
+
+      {/* Meja / Seating */}
+      <td className="px-3 py-4">
+        {participant.seating_arrangement ? (
+          <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 border border-amber-500/30">
+            🪑 {participant.seating_arrangement}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-500">-</span>
+        )}
       </td>
 
       {/* Jalur Undangan */}

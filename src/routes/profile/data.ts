@@ -15,6 +15,7 @@ export interface Participant {
   waktu_hadir: string | null
   gate?: string | number | null
   role_permission?: string | number | null
+  seating_arrangement?: string | null
   status: boolean
 }
 

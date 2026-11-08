@@ -198,6 +198,19 @@ export function ProfilePage() {
           </div>
         </div>
 
+        {participant.seating_arrangement && (
+          <div className="mx-auto mt-4 max-w-3xl">
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 transition-all duration-300">
+              <p className="text-xs uppercase tracking-wider text-amber-300 font-semibold">
+                Nomor Meja / Seating Arrangement
+              </p>
+              <p className="mt-1 text-xl sm:text-2xl font-black text-amber-200">
+                🪑 {participant.seating_arrangement}
+              </p>
+            </div>
+          </div>
+        )}
+
         {participant.waktu_hadir && (
           <p className="mt-8 text-sm text-slate-400">
             Waktu hadir:{' '}

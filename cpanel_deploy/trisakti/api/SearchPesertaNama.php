@@ -29,6 +29,7 @@ try {
             waktu_konfirmasi,
             waktu_souvenir,
             souvenir_status,
+            seating_arrangement,
             status
         FROM user_peserta
         WHERE name LIKE ? OR notelp LIKE ? OR pekerjaan LIKE ?
