@@ -423,7 +423,7 @@ export function DashboardPage() {
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 justify-end">
             {/* Tombol Domain RSVP */}
             <button
               type="button"
@@ -475,7 +475,7 @@ export function DashboardPage() {
               type="button"
               onClick={() => void loadData()}
               title="Segarkan data terbaru dari database"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-slate-500 hover:text-white transition active:scale-95"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:border-slate-500 hover:text-white transition active:scale-95 hidden!"
             >
               <span>{loading ? 'Memuat...' : 'Segarkan'}</span>
             </button>
@@ -517,7 +517,7 @@ export function DashboardPage() {
             <Link
               to="/validation/souvenir"
               title="Buka Station Scan QR Meja Pengambilan Souvenir"
-              className="inline-flex items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/20 px-3.5 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition active:scale-95"
+              className="inline-flex items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/20 px-3.5 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition active:scale-95 hidden!"
             >
               Meja Souvenir
             </Link>
@@ -525,9 +525,9 @@ export function DashboardPage() {
             {/* Tambah Peserta */}
             <Link
               to="/dashboard/create"
-              className="inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95"
+              className="capitalize inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 active:scale-95"
             >
-              Tambah
+              Tambah data peserta
             </Link>
           </div>
         </header>
@@ -655,7 +655,7 @@ export function DashboardPage() {
                   setPageSize(Number(event.target.value))
                   setPage(1)
                 }}
-                className="w-full sm:w-32 rounded-xl border border-emerald-500/40 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-emerald-400 outline-none focus:border-emerald-400"
+                className="w-full sm:w-32 rounded-xl border border-emerald-500/40 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-emerald-400 outline-none focus:border-emerald-400 hidden!"
                 title="Jumlah data per halaman"
               >
                 <option value={10}>Show 10</option>
@@ -1086,7 +1086,7 @@ function ParticipantTableRow({
             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition active:scale-95 ${
               isCopied
                 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-cyan-300'
+                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 whitespace-nowrap'
             }`}
           >
             {isCopied ? 'Disalin' : 'Salin Link'}

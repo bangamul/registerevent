@@ -12,6 +12,8 @@ import {
   type Participant,
 } from './data'
 
+const AUTO_SUBMIT_DELAY_MS = 2000
+
 export function SouvenirPage() {
   const [registrationId, setRegistrationId] = useState('')
   const [inputMode, setInputMode] = useState<'id' | 'name'>('id')
@@ -200,7 +202,11 @@ export function SouvenirPage() {
       !result &&
       lastAttemptedId.current !== trimmed
     ) {
-      processSouvenirScan(trimmed)
+      const timer = setTimeout(
+        () => processSouvenirScan(trimmed),
+        AUTO_SUBMIT_DELAY_MS,
+      )
+      return () => clearTimeout(timer)
     }
   }, [registrationId, inputMode, loading, result, processSouvenirScan])
 
@@ -282,75 +288,72 @@ export function SouvenirPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between bg-slate-950 px-4 py-8 text-white">
-      {/* BACKGROUND DECORATION */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-amber-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-emerald-500/10 blur-[120px]" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-2xl">
+    <main
+      className="flex min-h-screen flex-col items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-8 text-slate-900 relative"
+      style={{ backgroundImage: "url('/images/bg-book.jpeg')" }}
+    >
+      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center">
         {/* NAVIGATION STATION SWITCHER */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-900/90 p-1.5 border border-slate-800 shadow-xl backdrop-blur">
-          <div className="flex flex-wrap items-center gap-1">
+        <div className="mb-6 flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/90 p-2 border border-amber-900/10 shadow-lg backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => navigate({ to: '/validation' })}
-              className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-amber-800 hover:bg-slate-100 transition"
             >
-              🚪 Gate Masuk
+              Gate Masuk
             </button>
             <button
               type="button"
               onClick={() => navigate({ to: '/validation/checkout' })}
-              className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-amber-800 hover:bg-slate-100 transition"
             >
-              🏃 Gate Keluar
+              Gate Keluar
             </button>
             <button
               type="button"
-              className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-3.5 py-2 text-xs font-bold text-slate-950 shadow-md"
+              className="rounded-xl bg-amber-700 px-4 py-2 text-xs font-bold text-white shadow-md shadow-amber-800/20"
             >
-              🎁 Meja Souvenir
+              Meja Souvenir
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => navigate({ to: '/dashboard' })}
-            className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 transition"
+            className="rounded-xl border border-slate-300 bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 transition hidden!"
           >
-            📊 Dashboard
+            Dashboard
           </button>
         </div>
 
         {/* STATUS BOOTH & TIME SCHEDULE BANNER */}
-        <div className="mb-6 rounded-2xl border border-white/10 bg-slate-900/80 p-4 shadow-xl backdrop-blur">
+        <div className="mb-6 w-full rounded-2xl border border-amber-900/15 bg-white/90 p-4 shadow-md backdrop-blur-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span
                 className={`flex h-4 w-4 rounded-full ${
                   settings?.is_open
-                    ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)] animate-pulse'
-                    : 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)]'
+                    ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse'
+                    : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]'
                 }`}
               />
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
                     Status Booth Souvenir:
                   </span>
                   <span
-                    className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+                    className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
                       settings?.is_open
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-rose-100 text-rose-800 border border-rose-300'
                     }`}
                   >
                     {settings?.is_open ? 'AKTIF / DIBUKA' : 'TERKUNCI / BELUM BUKA'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <p className="text-xs font-semibold text-slate-700 mt-0.5">
                   {settings?.status_text ?? 'Memuat jadwal...'}
                 </p>
               </div>
@@ -363,7 +366,7 @@ export function SouvenirPage() {
                   type="button"
                   onClick={() => handleQuickMode('auto')}
                   title="Kembalikan ke jadwal otomatis jam"
-                  className="rounded-xl bg-slate-800 border border-slate-700 px-3 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-700 transition"
+                  className="rounded-xl bg-slate-100 border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200 transition"
                 >
                   ⏱️ Pasang Auto
                 </button>
@@ -372,7 +375,7 @@ export function SouvenirPage() {
                   type="button"
                   onClick={() => handleQuickMode('open')}
                   title="Paksa buka booth souvenir sekarang untuk testing / tamu"
-                  className="rounded-xl bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-600/50 transition active:scale-95"
+                  className="rounded-xl bg-emerald-700 text-white border border-emerald-800 px-3 py-1.5 text-[11px] font-bold hover:bg-emerald-800 transition active:scale-95 shadow-sm"
                 >
                   🔓 Buka Sekarang
                 </button>
@@ -382,7 +385,7 @@ export function SouvenirPage() {
                 type="button"
                 onClick={() => setShowSettingsModal(true)}
                 title="Atur jam buka dan mode booth souvenir"
-                className="rounded-xl bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-700 transition"
+                className="rounded-xl bg-slate-100 border border-slate-300 px-2.5 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200 transition"
               >
                 ⚙️ Atur Jam
               </button>
@@ -391,15 +394,15 @@ export function SouvenirPage() {
         </div>
 
         {/* MAIN SCAN CARD */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
+        <section className="relative w-full overflow-hidden rounded-3xl border border-amber-900/15 bg-white/95 p-8 shadow-2xl backdrop-blur-md">
           <div className="text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 px-3.5 py-1 text-xs font-bold text-amber-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-4 py-1 text-xs font-extrabold text-amber-900">
               🎁 Meja Pengambilan Souvenir
             </span>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
               Scan QR Code Souvenir
             </h1>
-            <p className="mt-1.5 text-sm text-slate-400">
+            <p className="mt-1.5 text-sm font-semibold text-slate-600">
               Arahkan scanner pada QR Code E-Ticket tamu undangan (1x penukaran).
             </p>
           </div>
@@ -409,20 +412,20 @@ export function SouvenirPage() {
             <div className="mt-6 animate-in fade-in zoom-in-95 duration-200">
               {/* 1. SUKSES KLAIM */}
               {result.code === 'SUCCESS' && (
-                <div className="rounded-2xl border-2 border-emerald-500/60 bg-emerald-950/70 p-6 text-center shadow-[0_0_40px_rgba(16,185,129,0.3)]">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-3xl">
+                <div className="rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-6 text-center shadow-lg">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl border border-emerald-300">
                     ✅
                   </div>
-                  <span className="mt-3 inline-block rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-emerald-300 border border-emerald-500/40">
+                  <span className="mt-3 inline-block rounded-full bg-emerald-200 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-emerald-900 border border-emerald-400">
                     SOUVENIR BERHASIL DIAMBIL
                   </span>
-                  <h2 className="mt-2 text-2xl font-black text-white">
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">
                     {result.data?.name}
                   </h2>
-                  <p className="text-sm font-mono text-emerald-300">
+                  <p className="text-sm font-mono font-bold text-emerald-800">
                     ID: {result.data?.id_registrasi} • {result.data?.pekerjaan || 'Tamu Undangan'}
                   </p>
-                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-black/30 px-4 py-2 text-xs text-slate-300">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-100/80 border border-emerald-300 px-4 py-2 text-xs font-bold text-emerald-900">
                     <span>🕒 Waktu: <b>{new Date().toLocaleTimeString('id-ID')} WIB</b></span>
                     <span>•</span>
                     <span>📦 1 Paket Souvenir Diberikan</span>
@@ -432,34 +435,34 @@ export function SouvenirPage() {
 
               {/* 2. SOUVENIR SUDAH PERNAH DIAMBIL (ALREADY CLAIMED) */}
               {result.code === 'ALREADY_CLAIMED' && (
-                <div className="rounded-2xl border-2 border-rose-500/80 bg-rose-950/80 p-6 text-center shadow-[0_0_40px_rgba(244,63,94,0.4)]">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/20 text-3xl animate-bounce">
+                <div className="rounded-2xl border-2 border-rose-500 bg-rose-50 p-6 text-center shadow-lg">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-3xl animate-bounce border border-rose-300">
                     ⚠️
                   </div>
-                  <span className="mt-3 inline-block rounded-full bg-rose-500/30 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-rose-300 border border-rose-500/50">
+                  <span className="mt-3 inline-block rounded-full bg-rose-200 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-rose-900 border border-rose-400">
                     SOUVENIR SUDAH PERNAH DIAMBIL!
                   </span>
-                  <h2 className="mt-2 text-2xl font-black text-rose-100">
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">
                     {result.data?.name || 'Tamu Undangan'}
                   </h2>
-                  <p className="text-sm font-mono text-rose-200">
+                  <p className="text-sm font-mono font-bold text-rose-800">
                     ID: {result.data?.id_registrasi}
                   </p>
 
-                  <div className="mt-4 rounded-xl border border-rose-500/30 bg-black/40 p-3 text-xs text-rose-200 text-left">
-                    <p className="font-semibold text-rose-300">Catatan Verifikasi:</p>
-                    <p className="mt-1">
+                  <div className="mt-4 rounded-xl border border-rose-200 bg-white p-3.5 text-xs text-slate-700 text-left shadow-sm">
+                    <p className="font-extrabold text-rose-800">Catatan Verifikasi:</p>
+                    <p className="mt-1 font-semibold text-slate-800">
                       • QR Code ini <b>sudah pernah ditukarkan</b> untuk souvenir.
                     </p>
-                    <p>
+                    <p className="font-semibold text-slate-800">
                       • Waktu Pengambilan: <b>{result.data?.waktu_souvenir ?? '-'}</b>
                     </p>
                     {result.data?.souvenir_petugas && (
-                      <p>
+                      <p className="font-semibold text-slate-800">
                         • Dicatat Oleh: <b>{result.data.souvenir_petugas}</b>
                       </p>
                     )}
-                    <p className="text-rose-400 font-bold mt-1">
+                    <p className="text-rose-700 font-extrabold mt-1.5">
                       ⛔ Mohon maaf, 1 QR Code hanya berlaku untuk 1 paket souvenir.
                     </p>
                   </div>
@@ -469,7 +472,7 @@ export function SouvenirPage() {
                     <button
                       type="button"
                       onClick={() => handleReset(result.data!.id_registrasi)}
-                      className="rounded-xl border border-rose-400/40 bg-rose-900/40 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-900/70 transition"
+                      className="rounded-xl border border-rose-300 bg-rose-100 px-3.5 py-1.5 text-xs font-bold text-rose-800 hover:bg-rose-200 transition"
                     >
                       🔄 Reset Status (Testing / Override)
                     </button>
@@ -479,32 +482,32 @@ export function SouvenirPage() {
 
               {/* 3. WAKTU BELUM TIBA / BOOTH TUTUP */}
               {(result.code === 'NOT_STARTED_YET' || result.code === 'BOOTH_CLOSED') && (
-                <div className="rounded-2xl border-2 border-amber-500/80 bg-amber-950/80 p-6 text-center shadow-[0_0_40px_rgba(245,158,11,0.4)]">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 text-3xl">
+                <div className="rounded-2xl border-2 border-amber-600 bg-amber-50 p-6 text-center shadow-lg">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-3xl border border-amber-300">
                     ⛔
                   </div>
-                  <span className="mt-3 inline-block rounded-full bg-amber-500/30 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-300 border border-amber-500/50">
+                  <span className="mt-3 inline-block rounded-full bg-amber-200 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-950 border border-amber-400">
                     PENGAMBILAN SOUVENIR BELUM DIBUKA
                   </span>
-                  <h2 className="mt-2 text-xl font-bold text-amber-100">
+                  <h2 className="mt-2 text-xl font-extrabold text-slate-900">
                     {result.message}
                   </h2>
-                  <p className="mt-2 text-xs text-amber-200/80 max-w-md mx-auto">
+                  <p className="mt-2 text-xs font-semibold text-slate-700 max-w-md mx-auto">
                     QR Code scan tidak dapat diproses karena waktu pengambilan belum tiba atau booth masih dalam status terkunci.
                   </p>
 
-                  <div className="mt-4 flex justify-center gap-2">
+                  <div className="mt-5 flex justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => processSouvenirScan(lastAttemptedId.current, true)}
-                      className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
+                      className="rounded-xl bg-amber-700 px-4 py-2 text-xs font-bold text-white hover:bg-amber-800 transition shadow-md"
                     >
                       ⚡ Buka Khusus (Force Override)
                     </button>
                     <button
                       type="button"
                       onClick={() => handleQuickMode('open')}
-                      className="rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-2 text-xs font-bold text-amber-300 hover:bg-slate-800 transition"
+                      className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-sm"
                     >
                       🔓 Buka Booth Untuk Semua
                     </button>
@@ -514,12 +517,12 @@ export function SouvenirPage() {
 
               {/* 4. ID NOT FOUND / ERROR LAIN */}
               {result.code === 'NOT_FOUND' && (
-                <div className="rounded-2xl border-2 border-rose-500/60 bg-rose-950/70 p-6 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-500/20 text-2xl">
+                <div className="rounded-2xl border-2 border-rose-400 bg-rose-50 p-6 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-2xl border border-rose-300">
                     ❌
                   </div>
-                  <h3 className="mt-3 text-lg font-bold text-rose-200">{result.message}</h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <h3 className="mt-3 text-lg font-bold text-rose-900">{result.message}</h3>
+                  <p className="text-xs font-medium text-slate-600 mt-1">
                     Pastikan QR Code berasal dari E-Ticket resmi acara ini.
                   </p>
                 </div>
@@ -529,15 +532,15 @@ export function SouvenirPage() {
 
           {/* INPUT FORM SCANNER OR NAME SEARCH */}
           <form onSubmit={handleSubmit} className="mt-8">
-            <div className="mb-4 flex rounded-xl border border-slate-800 bg-slate-900 p-1">
+            <div className="mb-5 flex rounded-xl border border-slate-200 bg-slate-100 p-1.5 shadow-inner">
               <button
                 type="button"
                 disabled={loading || Boolean(result)}
                 onClick={() => handleInputModeChange('id')}
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
                   inputMode === 'id'
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-amber-700 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 ID Registrasi
@@ -546,10 +549,10 @@ export function SouvenirPage() {
                 type="button"
                 disabled={loading || Boolean(result)}
                 onClick={() => handleInputModeChange('name')}
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
                   inputMode === 'name'
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-amber-700 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Nama Lengkap
@@ -571,30 +574,30 @@ export function SouvenirPage() {
                 }}
                 disabled={loading || Boolean(result)}
                 placeholder={inputMode === 'id' ? 'Scan QR Code E-Ticket Peserta...' : 'Ketik nama peserta...'}
-                className="w-full rounded-2xl border-2 border-amber-500/40 bg-slate-900/90 px-5 py-4 pl-12 text-base font-semibold text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-500/20 disabled:opacity-50"
+                className="w-full rounded-2xl border-2 border-slate-300 bg-white px-5 py-4 pl-12 text-base font-bold text-slate-950 placeholder-slate-400 shadow-sm outline-none transition focus:border-amber-700 focus:ring-4 focus:ring-amber-700/10 disabled:opacity-50"
               />
               {inputMode === 'id' ? (
-                <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-amber-400">
+                <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-amber-800">
                   🔍
                 </div>
               ) : (
                 <>
                   {isSearching && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-800">
                       Mencari...
                     </span>
                   )}
                   {suggestions.length > 0 && (
-                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                    <div className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-2xl">
                       {suggestions.map((participant) => (
                         <button
                           key={participant.id}
                           type="button"
                           onClick={() => handleSelectParticipant(participant)}
-                          className="block w-full rounded-lg px-3 py-3 text-left hover:bg-slate-800"
+                          className="block w-full rounded-lg px-4 py-3 text-left transition hover:bg-amber-50"
                         >
-                          <span className="block font-semibold text-white">{participant.name}</span>
-                          <span className="mt-1 block text-xs text-slate-400">
+                          <span className="block font-bold text-slate-900">{participant.name}</span>
+                          <span className="mt-0.5 block text-xs font-medium text-amber-800">
                             {participant.pekerjaan || 'Tamu Undangan'}
                           </span>
                         </button>
@@ -605,41 +608,41 @@ export function SouvenirPage() {
               )}
               {loading && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <span className="flex h-5 w-5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+                  <span className="flex h-5 w-5 animate-spin rounded-full border-2 border-amber-700 border-t-transparent" />
                 </div>
               )}
             </div>
 
-            <p className="mt-2.5 text-center text-xs text-slate-500">
+            <p className="mt-2.5 text-center text-xs font-semibold text-slate-600">
               {inputMode === 'id'
-                ? '💡 Arahkan scanner barcode / QR ke tiket tamu. ID akan diproses otomatis.'
+                ? '💡 Arahkan scanner barcode / QR ke tiket tamu. ID akan dipproses otomatis.'
                 : 'Pilih nama dari hasil pencarian untuk memproses pengambilan souvenir.'}
             </p>
           </form>
 
           {/* REAL-TIME STATS COUNTERS */}
           <div className="mt-8 grid grid-cols-3 gap-3">
-            <div className="rounded-2xl border border-white/5 bg-slate-900/60 p-3.5 text-center">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center shadow-sm">
+              <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
                 Total Tamu
               </span>
-              <p className="text-2xl font-black text-white mt-0.5">
+              <p className="text-2xl font-black text-slate-900 mt-0.5">
                 {settings?.stats.total_peserta ?? 0}
               </p>
             </div>
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-3.5 text-center">
-              <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+            <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-center shadow-sm">
+              <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">
                 Terdistribusi
               </span>
-              <p className="text-2xl font-black text-emerald-300 mt-0.5">
+              <p className="text-2xl font-black text-emerald-900 mt-0.5">
                 {settings?.stats.claimed_count ?? 0}
               </p>
             </div>
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 p-3.5 text-center">
-              <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center shadow-sm">
+              <span className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider">
                 Sisa Souvenir
               </span>
-              <p className="text-2xl font-black text-amber-300 mt-0.5">
+              <p className="text-2xl font-black text-amber-900 mt-0.5">
                 {settings?.stats.unclaimed_count ?? 0}
               </p>
             </div>
@@ -647,25 +650,25 @@ export function SouvenirPage() {
 
           {/* RECENT CLAIMS LIST */}
           {recentClaims.length > 0 && (
-            <div className="mt-8 border-t border-slate-800 pt-5">
+            <div className="mt-8 border-t border-slate-200 pt-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Riwayat Scan Terakhir (Sesi Ini):
                 </span>
-                <span className="text-xs text-slate-500">{recentClaims.length} penukaran</span>
+                <span className="text-xs font-semibold text-slate-500">{recentClaims.length} penukaran</span>
               </div>
               <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                 {recentClaims.map((item, idx) => (
                   <div
                     key={`${item.id_registrasi}-${idx}`}
-                    className="flex items-center justify-between rounded-xl bg-slate-900/80 px-3 py-2 text-xs border border-slate-800"
+                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-2 text-xs border border-slate-200"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span>
-                      <span className="font-semibold text-white">{item.name}</span>
-                      <span className="font-mono text-slate-400 text-[11px]">({item.id_registrasi})</span>
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span className="font-bold text-slate-900">{item.name}</span>
+                      <span className="font-mono text-slate-500 text-[11px]">({item.id_registrasi})</span>
                     </div>
-                    <span className="font-mono text-slate-400">{item.waktu} WIB</span>
+                    <span className="font-mono font-semibold text-slate-600">{item.waktu} WIB</span>
                   </div>
                 ))}
               </div>
@@ -675,20 +678,20 @@ export function SouvenirPage() {
       </div>
 
       {/* FOOTER */}
-      <footer className="relative z-10 mt-8 text-center text-xs text-slate-600">
+      <footer className="relative z-10 mt-8 text-center text-xs font-semibold text-slate-700">
         Peluncuran Buku: Timah, Manusia, dan Masa Depan • Souvenir Redemption Module
       </footer>
 
       {/* MODAL SETTING JAM & STATUS BOOTH */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6 text-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-lg font-bold">⚙️ Pengaturan Waktu & Status Booth</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <h3 className="text-lg font-bold text-slate-900">⚙️ Pengaturan Waktu & Status Booth</h3>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="rounded-lg p-1 text-slate-400 hover:text-white"
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
               >
                 ✕
               </button>
@@ -696,7 +699,7 @@ export function SouvenirPage() {
 
             <div className="mt-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Mode Operasional Booth
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -705,8 +708,8 @@ export function SouvenirPage() {
                     onClick={() => setTempMode('auto')}
                     className={`rounded-xl py-2.5 text-xs font-bold transition border ${
                       tempMode === 'auto'
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
-                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        ? 'bg-amber-700 text-white border-amber-800 shadow-md'
+                        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                     }`}
                   >
                     ⏱️ Auto (Sesuai Jam)
@@ -716,8 +719,8 @@ export function SouvenirPage() {
                     onClick={() => setTempMode('open')}
                     className={`rounded-xl py-2.5 text-xs font-bold transition border ${
                       tempMode === 'open'
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
-                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        ? 'bg-emerald-700 text-white border-emerald-800 shadow-md'
+                        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                     }`}
                   >
                     🟢 Buka Sekarang
@@ -727,14 +730,14 @@ export function SouvenirPage() {
                     onClick={() => setTempMode('closed')}
                     className={`rounded-xl py-2.5 text-xs font-bold transition border ${
                       tempMode === 'closed'
-                        ? 'bg-rose-500 text-white border-rose-400 shadow-md'
-                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                        ? 'bg-rose-700 text-white border-rose-800 shadow-md'
+                        : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
                     }`}
                   >
                     🔴 Tutup Booth
                   </button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-400">
+                <p className="mt-1.5 text-[11px] font-medium text-slate-500">
                   {tempMode === 'auto' && '• Booth otomatis terbuka saat jam mencapai batas waktu yang ditentukan.'}
                   {tempMode === 'open' && '• Booth dipaksa buka sekarang, tamu bebas scan souvenir.'}
                   {tempMode === 'closed' && '• Booth ditutup penuh, seluruh scan akan ditolak.'}
@@ -742,26 +745,26 @@ export function SouvenirPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Jadwal Jam Buka Pengambilan (WIB)
                 </label>
                 <input
                   type="time"
                   value={tempStartTime}
                   onChange={(e) => setTempStartTime(e.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white focus:border-amber-400 focus:outline-none"
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-900 focus:border-amber-700 focus:outline-none"
                 />
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
                   Default: 17:00 WIB (sesuai rundown penutupan acara).
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2 border-t border-slate-800 pt-4">
+            <div className="mt-6 flex justify-end gap-2 border-t border-slate-200 pt-4">
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+                className="rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
               >
                 Batal
               </button>
@@ -769,7 +772,7 @@ export function SouvenirPage() {
                 type="button"
                 onClick={handleSaveSettings}
                 disabled={savingSettings}
-                className="rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
+                className="rounded-xl bg-amber-700 px-5 py-2 text-xs font-bold text-white hover:bg-amber-800 transition shadow-md"
               >
                 {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
               </button>

@@ -29,6 +29,14 @@ export function ValidationPage() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
 
+  const showProfileAndReturnToValidation = useCallback((message: string) => {
+    setSuccessMessage(message)
+    navigate({ to: '/profile' })
+    window.setTimeout(() => {
+      navigate({ to: '/validation', replace: true })
+    }, 5000)
+  }, [navigate])
+
   // Auto focus input
   useEffect(() => {
     if (!loading && !successMessage && !error) {
@@ -57,23 +65,6 @@ export function ValidationPage() {
       clearTimeout(timer)
     }
   }, [inputMode, registrationId, selectedParticipant])
-
-  // Timer reset 3 detik kalau Check-in Ulang Sukses
-  useEffect(() => {
-    if (!successMessage) return
-
-    const timer = setTimeout(() => {
-      setSuccessMessage('')
-      setRegistrationId('')
-      setSelectedParticipant(null)
-      setSuggestions([])
-      setError('')
-      lastAttemptedId.current = ''
-      inputRef.current?.focus()
-    }, 3000)
-
-    return () => clearTimeout(timer)
-  }, [successMessage])
 
   // Timer reset 3 detik kalau Error / ID Tidak Terdaftar / Tidak Punya Akses
   useEffect(() => {
@@ -143,7 +134,7 @@ export function ValidationPage() {
             1,
           )
           broadcastToProfile(updatedSesi1) // 💡 Broadcast ulang dengan data terbaru
-          setSuccessMessage(`Check-in Sesi 1 Berhasil: ${peserta.name}`)
+          showProfileAndReturnToValidation(`Check-in Sesi 1 Berhasil: ${peserta.name}`)
         } else {
           // Belum pernah validasi -> Langsung check-in tanpa redirect ke /form
           saveRegistrationId(currentUser.id, peserta.id_registrasi)
@@ -153,7 +144,7 @@ export function ValidationPage() {
             1,
           )
           broadcastToProfile(updatedFirst) // 💡 Broadcast dengan waktu_hadir terisi
-          setSuccessMessage(`Validasi Berhasil: ${peserta.name}`)
+          showProfileAndReturnToValidation(`Validasi Berhasil: ${peserta.name}`)
         }
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {
@@ -167,7 +158,15 @@ export function ValidationPage() {
         setLoading(false)
       }
     },
-    [loading, successMessage, error, currentUser, navigate, inputMode],
+    [
+      loading,
+      successMessage,
+      error,
+      currentUser,
+      navigate,
+      inputMode,
+      showProfileAndReturnToValidation,
+    ],
   )
 
   // Wait for scanner keystrokes to stop before looking up the scanned ID.
@@ -221,187 +220,184 @@ export function ValidationPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-8 text-white">
-      {/* STATION SWITCHER HEADER */}
-      <div className="mb-6 flex w-full max-w-xl flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-900/90 p-1.5 border border-slate-800 shadow-xl backdrop-blur">
-        <div className="flex flex-wrap items-center gap-1">
-          <button
-            type="button"
-            className="rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-950 shadow-md"
-          >
-            🚪 Gate Masuk
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate({ to: '/validation/checkout' })}
-            className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
-          >
-            🏃 Gate Keluar
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate({ to: '/validation/souvenir' })}
-            className="rounded-xl px-3 py-2 text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-500/20 transition"
-          >
-            🎁 Meja Souvenir
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => navigate({ to: '/dashboard' })}
-          className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 transition"
-        >
-          📊 Dashboard
-        </button>
-      </div>
-
-      <section className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
-
-        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-1.5 text-center text-xs font-semibold text-slate-950 hidden">
-          <span className="inline-block rounded-xl bg-amber-500 px-4 py-2.5 shadow-md">
-            Sesi 1
-          </span>
-        </div>
-
-        <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-400/80 hidden">
-            Validation Station • Mode Sesi 1
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Validasi Peserta
-          </h1>
-
-          <p className="mt-2 leading-7 text-slate-400 text-sm">
-            Scan ID registrasi atau cari peserta berdasarkan nama lengkap.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <div>
-            <div className="mb-4 flex rounded-xl border border-slate-800 bg-slate-900 p-1">
-              <button
-                type="button"
-                disabled={loading || !!successMessage || !!error}
-                onClick={() => handleInputModeChange('id')}
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                  inputMode === 'id'
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                ID Registrasi
-              </button>
-              <button
-                type="button"
-                disabled={loading || !!successMessage || !!error}
-                onClick={() => handleInputModeChange('name')}
-                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                  inputMode === 'name'
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Nama Lengkap
-              </button>
-            </div>
-            <label
-              htmlFor="participant-input"
-              className="mb-2 block text-sm font-medium text-slate-200"
+    <main
+      className="flex min-h-screen flex-col items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-8 text-slate-900"
+      style={{ backgroundImage: "url('/images/bg-book.jpeg')" }}
+    >
+      <div className="flex w-full max-w-xl flex-col items-center">
+        {/* STATION SWITCHER HEADER */}
+        <div className="mb-6 flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/90 p-2 border border-amber-900/10 shadow-lg backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              className="rounded-xl bg-amber-700 px-4 py-2 text-xs font-bold text-white shadow-md shadow-amber-800/20"
             >
-              {inputMode === 'id' ? 'ID Registrasi' : 'Nama Lengkap'}
-            </label>
+              Gate Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: '/validation/checkout' })}
+              className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-amber-800 hover:bg-slate-100 transition"
+            >
+              Gate Keluar
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: '/validation/souvenir' })}
+              className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-amber-800 hover:bg-slate-100 transition"
+            >
+              Meja Souvenir
+            </button>
+          </div>
 
-            <div className="relative">
-              <input
-                ref={inputRef}
-                id="participant-input"
-                name={inputMode === 'id' ? 'registrationId' : 'participantName'}
-                type="text"
-                inputMode={inputMode === 'id' ? 'none' : 'text'}
-                value={registrationId}
-                disabled={loading || !!successMessage || !!error}
-                onChange={(event) => {
-                  setRegistrationId(event.target.value)
-                  setSelectedParticipant(null)
-                  setSuggestions([])
-                  setIsSearching(false)
-                  setError('')
-                }}
-                placeholder={inputMode === 'id' ? 'Scan QR Code Peserta...' : 'Ketik nama peserta...'}
-                autoComplete="off"
-                autoFocus
-                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-4 pr-12 text-white outline-none transition placeholder:text-slate-600 focus:border-white/50 focus:ring-2 focus:ring-white/10 disabled:opacity-50"
-              />
+          <button
+            type="button"
+            onClick={() => navigate({ to: '/dashboard' })}
+            className="rounded-xl border border-slate-300 bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 transition hidden!"
+          >
+            Dashboard
+          </button>
+        </div>
 
-              {inputMode === 'id' ? (
-                <span
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
-                  aria-hidden="true"
+        {/* MAIN VALIDATION CARD */}
+        <section className="w-full rounded-3xl border border-amber-900/15 bg-white/95 p-8 shadow-2xl backdrop-blur-md">
+          <div className="text-center">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              Validasi Peserta
+            </h1>
+
+            <p className="mt-2 text-sm font-semibold text-slate-600">
+              Scan ID registrasi atau cari peserta berdasarkan nama lengkap.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div>
+              {/* TAB SWITCHER */}
+              <div className="mb-5 flex rounded-xl border border-slate-200 bg-slate-100 p-1.5 shadow-inner">
+                <button
+                  type="button"
+                  disabled={loading || !!successMessage || !!error}
+                  onClick={() => handleInputModeChange('id')}
+                  className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
+                    inputMode === 'id'
+                      ? 'bg-amber-700 text-white shadow-md'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  ⌁
-                </span>
-              ) : (
-                <>
-                  {isSearching && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                      Mencari...
-                    </span>
-                  )}
-                  {suggestions.length > 0 && (
-                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
-                      {suggestions.map((participant) => (
-                        <button
-                          key={participant.id}
-                          type="button"
-                          onClick={() => handleSelectParticipant(participant)}
-                          className="block w-full rounded-lg px-3 py-3 text-left hover:bg-slate-800"
-                        >
-                          <span className="block font-semibold text-white">{participant.name}</span>
-                          <span className="mt-1 block text-xs text-slate-400">
-                            {participant.pekerjaan || 'Tamu Undangan'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
+                  ID Registrasi
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || !!successMessage || !!error}
+                  onClick={() => handleInputModeChange('name')}
+                  className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-extrabold transition-all ${
+                    inputMode === 'name'
+                      ? 'bg-amber-700 text-white shadow-md'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Nama Lengkap
+                </button>
+              </div>
+
+              <label
+                htmlFor="participant-input"
+                className="mb-2 block text-xs font-bold uppercase tracking-wider text-amber-900"
+              >
+                {inputMode === 'id' ? 'ID Registrasi' : 'Nama Lengkap'}
+              </label>
+
+              <div className="relative">
+                <input
+                  ref={inputRef}
+                  id="participant-input"
+                  name={inputMode === 'id' ? 'registrationId' : 'participantName'}
+                  type="text"
+                  inputMode={inputMode === 'id' ? 'none' : 'text'}
+                  value={registrationId}
+                  disabled={loading || !!successMessage || !!error}
+                  onChange={(event) => {
+                    setRegistrationId(event.target.value)
+                    setSelectedParticipant(null)
+                    setSuggestions([])
+                    setIsSearching(false)
+                    setError('')
+                  }}
+                  placeholder={inputMode === 'id' ? 'Scan QR Code Peserta...' : 'Ketik nama peserta...'}
+                  autoComplete="off"
+                  autoFocus
+                  className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-4 pr-12 text-base font-bold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-amber-700 focus:ring-4 focus:ring-amber-700/10 disabled:opacity-50 shadow-sm"
+                />
+
+                {inputMode === 'id' ? (
+                  <span
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xl font-black text-amber-800"
+                    aria-hidden="true"
+                  >
+                    ⌁
+                  </span>
+                ) : (
+                  <>
+                    {isSearching && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-800">
+                        Mencari...
+                      </span>
+                    )}
+                    {suggestions.length > 0 && (
+                      <div className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-2xl">
+                        {suggestions.map((participant) => (
+                          <button
+                            key={participant.id}
+                            type="button"
+                            onClick={() => handleSelectParticipant(participant)}
+                            className="block w-full rounded-lg px-4 py-3 text-left transition hover:bg-amber-50"
+                          >
+                            <span className="block font-bold text-slate-900">{participant.name}</span>
+                            <span className="mt-0.5 block text-xs font-medium text-amber-800">
+                              {participant.pekerjaan || 'Tamu Undangan'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <p className="mt-2.5 text-xs font-medium text-slate-600">
+                {inputMode === 'id'
+                  ? 'Sistem otomatis memproses ID setelah pemindaian selesai.'
+                  : 'Pilih nama dari hasil pencarian untuk memproses check-in.'}
+              </p>
+
+              {/* Banner Sukses Log Check-In */}
+              {successMessage && (
+                <div className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-center shadow-md">
+                  <p className="text-base font-bold text-emerald-800">
+                    {successMessage}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-emerald-600">
+                    Halaman siap kembali dalam 3 detik...
+                  </p>
+                </div>
+              )}
+
+              {/* Banner Error */}
+              {error && (
+                <div className="mt-5 rounded-xl border border-rose-300 bg-rose-50 p-4 text-center shadow-md">
+                  <p className="text-base font-bold text-rose-800">
+                    {error}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-rose-600">
+                    Halaman siap kembali dalam 3 detik...
+                  </p>
+                </div>
               )}
             </div>
-
-            <p className="mt-2 text-xs text-slate-500">
-              {inputMode === 'id'
-                ? 'Sistem otomatis memproses ID setelah pemindaian selesai.'
-                : 'Pilih nama dari hasil pencarian untuk memproses check-in.'}
-            </p>
-
-            {/* Banner Sukses Log Check-In (Auto Clear 3 Detik) */}
-            {successMessage && (
-              <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
-                <p className="text-base font-semibold text-emerald-400">
-                  {successMessage}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Halaman siap kembali dalam 3 detik...
-                </p>
-              </div>
-            )}
-
-            {/* Banner Error (Auto Clear 3 Detik) */}
-            {error && (
-              <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-center">
-                <p className="text-base font-semibold text-rose-400">
-                  {error}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Halaman siap kembali dalam 3 detik...
-                </p>
-              </div>
-            )}
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      </div>
     </main>
   )
 }

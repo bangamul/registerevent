@@ -4,20 +4,6 @@ import { useCurrentUser } from '../../lib/use-current-user'
 import { useRegistrationId } from '../../lib/use-registration-id'
 import { findParticipant, type Participant } from './data'
 
-// Tentukan Base API URL (sesuaikan dengan VITE_API_IMAGE / environment variable di projekmu)
-// const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://localhost:5173'
-const BASE_URL = import.meta.env.VITE_API_IMAGE || 'http://192.168.10.2/trisakti'
-
-// Helper untuk memastikan URL foto valid (baik jika dari CDN/external link maupun endpoint lokal API)
-function getPhotoUrl(foto: string | null | undefined): string | null {
-  if (!foto) return null
-  if (foto.startsWith('http://') || foto.startsWith('https://')) return foto
-
-  // Menghapus slash di awal jika ada
-  const cleanFotoPath = foto.startsWith('/') ? foto.slice(1) : foto
-  return `${BASE_URL}/assets/images/${cleanFotoPath}`
-}
-
 export function ProfilePage() {
   const currentUser = useCurrentUser()
   const registrationId = useRegistrationId(currentUser?.id)
@@ -25,12 +11,10 @@ export function ProfilePage() {
   const [participant, setParticipant] = useState<Participant | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [imageError, setImageError] = useState(false)
 
   // 💡 1. Fetch data peserta awal saat halaman/ID registrasi di-load
   useEffect(() => {
     if (!registrationId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false)
       setError('ID Registrasi tidak ditemukan.')
       return
@@ -40,10 +24,7 @@ export function ProfilePage() {
       try {
         setLoading(true)
         setError('')
-        setImageError(false)
-
         const data = await findParticipant(registrationId)
-
         setParticipant(data)
       } catch (err) {
         setError(
@@ -66,10 +47,8 @@ export function ProfilePage() {
     channel.onmessage = (event) => {
       if (event.data?.type === 'CHECK_IN_SUCCESS') {
         const updatedData: Participant = event.data.participant
-
-        // Selalu update UI TV dengan data yang baru di-scan
         setParticipant(updatedData)
-        setError('') // Bersihkan error (seperti 404) jika sebelumnya ada
+        setError('')
       }
     }
 
@@ -80,25 +59,34 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-        <p className="text-sm text-slate-400">
-          Memuat data peserta...
-        </p>
+      <main
+        className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-6 text-slate-900"
+        style={{ backgroundImage: "url('/images/bg-book.jpeg')" }}
+      >
+        <div className="rounded-2xl border border-amber-900/15 bg-white/90 px-8 py-5 shadow-2xl backdrop-blur-md">
+          <p className="text-sm font-bold text-amber-900 animate-pulse flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-700 animate-ping" />
+            Memuat data peserta...
+          </p>
+        </div>
       </main>
     )
   }
 
   if (error || !participant) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-        <section className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.06] p-8 text-center">
-          <p className="text-sm text-rose-300">
+      <main
+        className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat px-6 text-slate-900"
+        style={{ backgroundImage: "url('/images/bg-book.jpeg')" }}
+      >
+        <section className="w-full max-w-xl rounded-3xl border border-amber-900/15 bg-white/95 p-8 text-center shadow-2xl backdrop-blur-md">
+          <p className="text-base font-bold text-rose-800">
             {error || 'Data peserta tidak ditemukan.'}
           </p>
 
           <Link
             to="/form"
-            className="mt-6 inline-block text-sm text-slate-400 hover:text-white"
+            className="mt-6 inline-block rounded-xl border border-slate-300 bg-slate-100 px-5 py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-200 transition"
           >
             Kembali ke form admin
           </Link>
@@ -107,139 +95,82 @@ export function ProfilePage() {
     )
   }
 
-  const initials = participant.name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-
-  const photoUrl = getPhotoUrl(participant.foto)
   const isAlreadyValidated = Boolean(participant.waktu_hadir)
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-white">
-      <section className="w-full max-w-5xl rounded-[2rem] border border-white/10 bg-white/[0.06] p-8 text-center shadow-2xl backdrop-blur sm:p-14">
-        <p className="text-sm font-medium uppercase tracking-[0.3em] text-cyan-300">
-          Registration confirmed
-        </p>
+    <main
+      className="flex min-h-screen flex-col items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-10 text-slate-900 relative"
+      style={{ backgroundImage: "url('/images/bg-book.jpeg')" }}
+    >
+      <section className="relative z-10 w-full max-w-3xl rounded-[2.5rem] border border-amber-900/20 bg-white/95 p-8 text-center shadow-[0_20px_60px_rgba(120,53,15,0.15)] backdrop-blur-md sm:p-12">
+        {/* HEADER BADGE */}
+        <div className="inline-flex items-center gap-2 rounded-full bg-amber-100/80 border border-amber-300/60 px-5 py-1.5 text-xs font-extrabold uppercase tracking-[0.3em] text-amber-900 shadow-sm">
+          <span>✨</span>
+          <span>WELCOME TO THE EVENT</span>
+        </div>
 
-        {photoUrl && !imageError ? (
-          <img
-            src={photoUrl}
-            alt={participant.name}
-            onError={() => setImageError(true)}
-            className="mx-auto mt-8 h-28 w-28 rounded-full border-2 border-white/10 object-cover shadow-xl sm:h-36 sm:w-36"
-          />
-        ) : (
-          <div className="mx-auto mt-8 flex h-28 w-28 items-center justify-center rounded-full bg-white text-4xl font-black text-slate-950 shadow-xl sm:h-36 sm:w-36 sm:text-5xl">
-            {initials}
-          </div>
-        )}
-
-        <h1 className="mt-8 text-4xl font-bold tracking-tight sm:text-6xl">
+        {/* NAMA PESERTA */}
+        <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl leading-tight">
           {participant.name}
         </h1>
 
-        <p className="mt-4 text-lg text-slate-300 sm:text-2xl">
-          {participant.pekerjaan ?? 'Peserta Event Trisakti 2026'}
+        {/* JABATAN / INSTANSI */}
+        <p className="mt-3 text-lg font-bold text-amber-800 sm:text-2xl">
+          {participant.pekerjaan ?? 'Tamu Undangan'}
         </p>
 
-        {/* Row 1: Identitas Utama */}
-        <div className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-3">
-          <Info
-            label="Registration ID"
-            value={participant.id_registrasi}
-          />
-
-          <Info
-            label="Independent ID"
-            value={participant.id_independent}
-          />
-
-          <Info
-            label="Email"
-            value={participant.email ?? '-'}
-          />
+        {/* ELEGANT DIVIDER WITH ACCENT */}
+        <div className="mx-auto my-8 flex items-center justify-center gap-3 max-w-xs opacity-60">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-900" />
+          <span className="text-xs text-amber-900 font-serif">◆</span>
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-900" />
         </div>
 
-        {/* Row 2: Telpon, Gate, Role Permission */}
-        <div className="mx-auto mt-4 grid max-w-3xl gap-4 sm:grid-cols-3">
-          <Info
-            label="No. Telpon"
-            value={participant.notelp}
-          />
+        {/* STATUS KEHADIRAN & WAKTU (HERO BOX GOLD TONE) */}
+        <div className="mx-auto max-w-xl">
+          <div
+            className={`rounded-2xl border-2 p-6 transition-all duration-300 shadow-sm ${
+              isAlreadyValidated
+                ? 'border-amber-500/60 bg-gradient-to-b from-amber-50/90 to-amber-100/70'
+                : 'border-slate-300 bg-slate-50/90'
+            }`}
+          >
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-900/70">
+              STATUS KEHADIRAN
+            </span>
 
-          <Info
-            label="Gate"
-            value={participant.gate ?? '-'}
-          />
-
-          <Info
-            label="Role Permission"
-            value={participant.role_permission ?? '-'}
-          />
-        </div>
-
-        {/* Status Check-in Card (Full Width / Standout) */}
-        <div className="mx-auto mt-4 max-w-3xl">
-          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 transition-all duration-300">
-            <p className="text-xs uppercase tracking-wider text-slate-500">
-              Status Kehadiran
-            </p>
             <p
-              className={`mt-2 text-base font-semibold ${
-                isAlreadyValidated ? 'text-emerald-400' : 'text-amber-400'
+              className={`mt-1.5 text-2xl font-black sm:text-3xl tracking-wide ${
+                isAlreadyValidated ? 'text-amber-950' : 'text-slate-600'
               }`}
             >
-              {isAlreadyValidated ? 'Sudah Validasi' : 'Belum Validasi'}
+              {isAlreadyValidated ? '✓ SUDAH VALIDASI' : '⏳ BELUM VALIDASI'}
             </p>
+
+            {participant.waktu_hadir ? (
+              <div className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-white/90 border border-amber-300 px-4 py-1.5 text-xs font-bold text-slate-800 shadow-sm">
+                <span className="text-amber-800 font-extrabold">🕒 Waktu Masuk:</span>
+                <span className="font-mono text-slate-900 font-black">
+                  {new Date(participant.waktu_hadir).toLocaleString('id-ID', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}{' '}
+                  WIB
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                Menunggu konfirmasi scan barcode dari petugas...
+              </p>
+            )}
           </div>
         </div>
-
-        {participant.waktu_hadir && (
-          <p className="mt-8 text-sm text-slate-400">
-            Waktu hadir:{' '}
-            {new Date(participant.waktu_hadir).toLocaleString('id-ID', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}{' '}
-            WIB
-          </p>
-        )}
-
-        <p className="mt-12 hidden text-sm text-slate-500">
-          Silakan menunggu proses registrasi dari admin.
-        </p>
-
-        <Link
-          to="/form"
-          className="mt-6 hidden text-sm text-slate-500 hover:text-white"
-        >
-          Kembali ke form admin
-        </Link>
       </section>
+
+      {/* FOOTER ACRONYM */}
+      <footer className="relative z-10 mt-6 text-center text-xs font-bold text-slate-700">
+        Peluncuran Buku: Timah, Manusia, dan Masa Depan
+      </footer>
     </main>
-  )
-}
-
-function Info({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-      <p className="text-xs uppercase tracking-wider text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-2 break-words text-sm font-medium text-slate-200">
-        {value}
-      </p>
-    </div>
   )
 }
