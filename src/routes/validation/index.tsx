@@ -10,6 +10,8 @@ import {
 } from './data'
 import axios from 'axios'
 
+const AUTO_SUBMIT_DELAY_MS = 2000
+
 export function ValidationPage() {
   const [registrationId, setRegistrationId] = useState('')
   const [inputMode, setInputMode] = useState<'id' | 'name'>('id')
@@ -168,7 +170,7 @@ export function ValidationPage() {
     [loading, successMessage, error, currentUser, navigate, inputMode],
   )
 
-  // AUTO-SUBMIT READINESS CHECK
+  // Wait for scanner keystrokes to stop before looking up the scanned ID.
   useEffect(() => {
     const trimmedId = registrationId.trim()
     const isValidFormat = trimmedId.length >= 5
@@ -181,7 +183,8 @@ export function ValidationPage() {
       !error &&
       lastAttemptedId.current !== trimmedId
     ) {
-      processValidation(trimmedId)
+      const timer = setTimeout(() => processValidation(trimmedId), AUTO_SUBMIT_DELAY_MS)
+      return () => clearTimeout(timer)
     }
   }, [registrationId, inputMode, loading, successMessage, error, processValidation])
 
@@ -369,7 +372,7 @@ export function ValidationPage() {
 
             <p className="mt-2 text-xs text-slate-500">
               {inputMode === 'id'
-                ? 'Sistem otomatis memproses registrasi atau log check-in saat scanned.'
+                ? 'Sistem otomatis memproses ID setelah pemindaian selesai.'
                 : 'Pilih nama dari hasil pencarian untuk memproses check-in.'}
             </p>
 
