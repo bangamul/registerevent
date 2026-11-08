@@ -395,6 +395,12 @@ export function LandingPage() {
                     <span className="text-slate-200">{existingParticipant.pekerjaan}</span>
                   </div>
                 )}
+                {existingParticipant.seating_arrangement && (
+                  <div className="flex justify-between items-center text-sm bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/30">
+                    <span className="text-amber-300 font-semibold">Nomor Meja / Seating</span>
+                    <span className="font-bold text-amber-200">🪑 {existingParticipant.seating_arrangement}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-400">No. WhatsApp</span>
                   <span className="text-slate-200 font-mono">{existingParticipant.notelp}</span>

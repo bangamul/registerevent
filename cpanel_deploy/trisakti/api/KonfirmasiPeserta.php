@@ -87,7 +87,7 @@ if ($peserta) {
 
     // Ambil data terbaru
     $stmt = $pdo->prepare("
-        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, waktu_souvenir, souvenir_status, gate, role_permission, status, rsvp_status
+        SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, waktu_souvenir, souvenir_status, gate, role_permission, seating_arrangement, status, rsvp_status
         FROM user_peserta WHERE id = ? LIMIT 1
     ");
     $stmt->execute([$peserta['id']]);
@@ -137,7 +137,7 @@ $stmtInsert->execute([
 
 $newId = $pdo->lastInsertId();
 $stmt = $pdo->prepare("
-    SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, gate, role_permission, status, rsvp_status
+    SELECT id, id_registrasi, id_independent, name, notelp, email, foto, pekerjaan, waktu_hadir, waktu_sesi_2, waktu_konfirmasi, gate, role_permission, seating_arrangement, status, rsvp_status
     FROM user_peserta WHERE id = ? LIMIT 1
 ");
 $stmt->execute([$newId]);

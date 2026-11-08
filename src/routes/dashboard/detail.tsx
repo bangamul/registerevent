@@ -44,6 +44,7 @@ export function DetailPage() {
     pekerjaan: '',
     gate: '1',
     role_permission: '1',
+    seating_arrangement: '',
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -134,6 +135,7 @@ export function DetailPage() {
           pekerjaan: data.pekerjaan ?? '',
           gate: String(data.gate ?? '1'),
           role_permission: String(data.role_permission ?? '1'),
+          seating_arrangement: data.seating_arrangement ?? '',
         })
 
         // Fetch Log aktivitas peserta
@@ -203,6 +205,7 @@ export function DetailPage() {
           pekerjaan: formData.pekerjaan,
           gate: formData.gate,
           role_permission: formData.role_permission,
+          seating_arrangement: formData.seating_arrangement,
         })
 
         setParticipant(updatedData)
@@ -269,6 +272,10 @@ export function DetailPage() {
           <tr>
             <td class="label-col">Pekerjaan</td>
             <td>${participant.pekerjaan || '-'}</td>
+          </tr>
+          <tr>
+            <td class="label-col">Meja / Seating</td>
+            <td>${participant.seating_arrangement || '-'}</td>
           </tr>
           <tr>
             <td class="label-col">Gate</td>
@@ -627,6 +634,27 @@ export function DetailPage() {
                 ) : (
                   <p className="mt-1 text-sm font-medium text-slate-200">
                     {participant.pekerjaan || '-'}
+                  </p>
+                )}
+              </div>
+
+              {/* Meja / Seating Arrangement */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Nomor Meja / Seating
+                </p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="seating_arrangement"
+                    placeholder="Contoh: Table A, Meja VIP"
+                    value={formData.seating_arrangement}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm font-medium text-amber-400">
+                    {participant.seating_arrangement || '-'}
                   </p>
                 )}
               </div>

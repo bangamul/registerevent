@@ -16,6 +16,7 @@ export type Participant = {
   waktu_hadir: string | null
   gate?: number | string | null
   role_permission?: number | string | null
+  seating_arrangement?: string | null
   status: boolean
 }
 

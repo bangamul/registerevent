@@ -26,6 +26,7 @@ export type Participant = {
   waktu_souvenir?: string | null
   souvenir_status?: 'unclaimed' | 'claimed' | string
   souvenir_petugas?: string | null
+  seating_arrangement?: string | null
 }
 
 interface ParticipantResponse {
@@ -185,6 +186,7 @@ export async function updateParticipant(data: {
   pekerjaan: string | null
   gate: number | string | null
   role_permission: number | string | null
+  seating_arrangement?: string | null
 }): Promise<Participant> {
   const formData = new FormData()
   formData.append('id_registrasi', data.id_registrasi)
@@ -194,6 +196,7 @@ export async function updateParticipant(data: {
   formData.append('pekerjaan', data.pekerjaan ?? '')
   formData.append('gate', String(data.gate ?? 1))
   formData.append('role_permission', String(data.role_permission ?? 1))
+  formData.append('seating_arrangement', data.seating_arrangement ?? '')
 
   return postParticipant(
     'UpdatePeserta.php',
@@ -209,6 +212,7 @@ export async function createParticipant(data: {
   pekerjaan?: string
   gate?: string
   role_permission?: string
+  seating_arrangement?: string
   foto?: File | null
 }): Promise<Participant> {
   const formData = new FormData()
@@ -218,6 +222,7 @@ export async function createParticipant(data: {
   formData.append('pekerjaan', data.pekerjaan ?? '')
   formData.append('gate', data.gate ?? '')
   formData.append('role_permission', data.role_permission ?? '')
+  formData.append('seating_arrangement', data.seating_arrangement ?? '')
 
   if (data.foto) {
     formData.append('foto', data.foto)
