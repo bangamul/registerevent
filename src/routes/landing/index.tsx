@@ -297,6 +297,7 @@ export function LandingPage() {
       } else {
         setCheckMsg('Data tidak ditemukan. Pastikan ID Registrasi atau nomor WhatsApp yang Anda masukkan sudah terdaftar.')
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setCheckMsg('Terjadi kendala saat memeriksa data. Silakan coba beberapa saat lagi.')
     } finally {

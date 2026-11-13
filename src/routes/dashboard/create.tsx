@@ -35,6 +35,7 @@ export function CreatePage() {
         const compressedFile = await compressImage(file)
         setFoto(compressedFile)
         setPhotoPreview(URL.createObjectURL(compressedFile))
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         setFoto(file)
         setPhotoPreview(URL.createObjectURL(file))
@@ -113,7 +114,7 @@ export function CreatePage() {
         </div>
 
         {/* Form Container */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl sm:p-8">
+        <div className="rounded-3xl border border-white/10 bg-white/4 p-6 shadow-2xl sm:p-8">
           {error && (
             <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
               {error}

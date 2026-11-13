@@ -88,6 +88,7 @@ export function DashboardPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData()
 
     function onFocus() {
@@ -436,7 +437,7 @@ export function DashboardPage() {
               title="Atur domain publik untuk generate link RSVP"
               className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900/80 px-3.5 py-2.5 text-xs font-mono text-cyan-300 hover:border-cyan-500 hover:bg-slate-800 transition"
             >
-              <span className="max-w-[140px] truncate sm:max-w-none">{publicOrigin.replace(/^https?:\/\//, '')}</span>
+              <span className="max-w-35 truncate sm:max-w-none">{publicOrigin.replace(/^https?:\/\//, '')}</span>
             </button>
 
             {/* Tombol Laporan Harian */}
@@ -569,7 +570,7 @@ export function DashboardPage() {
         </section>
 
         {/* Tabel Section */}
-        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl sm:p-6 space-y-4">
+        <section className="rounded-3xl border border-white/10 bg-white/4 p-5 shadow-2xl sm:p-6 space-y-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-xl font-semibold">Daftar Peserta & Jalur Undangan</h2>
@@ -721,7 +722,7 @@ export function DashboardPage() {
           {!loading && !error && (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] border-collapse text-left text-sm">
+                <table className="w-full min-w-212.5 border-collapse text-left text-sm">
                   <thead>
                     <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-slate-500">
                       <th className="px-3 py-4 w-10 text-center">
@@ -969,7 +970,7 @@ function ParticipantTableRow({
 
   return (
     <tr
-      className={`border-b border-white/5 transition hover:bg-white/[0.03] ${
+      className={`border-b border-white/5 transition hover:bg-white/3 ${
         isSelected ? 'bg-cyan-950/20' : ''
       }`}
     >
