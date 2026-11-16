@@ -463,7 +463,7 @@ export function DetailPage() {
         </div>
 
         {/* Profile Card */}
-        <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
+        <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/4 shadow-2xl">
           {/* Top */}
           <div className="border-b border-white/10 p-6 sm:p-8">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -869,7 +869,7 @@ export function DetailPage() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {visibleLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-white/[0.02] transition">
+                      <tr key={log.id} className="hover:bg-white/2 transition">
                         <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-400">
                           {log.created_at ? (
                             new Date(log.created_at).toLocaleString('id-ID', {

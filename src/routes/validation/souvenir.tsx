@@ -93,6 +93,7 @@ export function SouvenirPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSettings()
     const interval = setInterval(loadSettings, 10000)
     return () => clearInterval(interval)
@@ -178,6 +179,7 @@ export function SouvenirPage() {
         } else {
           playSound('error')
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         playSound('error')
         setResult({
@@ -256,6 +258,7 @@ export function SouvenirPage() {
       })
       setSettings(updated)
       setShowSettingsModal(false)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       alert('Gagal menyimpan pengaturan booth souvenir')
     } finally {

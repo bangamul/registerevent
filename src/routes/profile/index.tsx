@@ -15,6 +15,7 @@ export function ProfilePage() {
   // 💡 1. Fetch data peserta awal saat halaman/ID registrasi di-load
   useEffect(() => {
     if (!registrationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false)
       setError('ID Registrasi tidak ditemukan.')
       return
@@ -119,11 +120,13 @@ export function ProfilePage() {
           {participant.pekerjaan ?? 'Tamu Undangan'}
         </p>
 
+        <p className="mt-2 font-semibold text-base">Seat : {participant.seating_arrangement}</p>
+
         {/* ELEGANT DIVIDER WITH ACCENT */}
         <div className="mx-auto my-8 flex items-center justify-center gap-3 max-w-xs opacity-60">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-900" />
+          <div className="h-px flex-1 bg-linear-to-r from-transparent to-amber-900" />
           <span className="text-xs text-amber-900 font-serif">◆</span>
-          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-900" />
+          <div className="h-px flex-1 bg-linear-to-l from-transparent to-amber-900" />
         </div>
 
         {/* STATUS KEHADIRAN & WAKTU (HERO BOX GOLD TONE) */}
@@ -131,7 +134,7 @@ export function ProfilePage() {
           <div
             className={`rounded-2xl border-2 p-6 transition-all duration-300 shadow-sm ${
               isAlreadyValidated
-                ? 'border-amber-500/60 bg-gradient-to-b from-amber-50/90 to-amber-100/70'
+                ? 'border-amber-500/60 bg-linear-to-b from-amber-50/90 to-amber-100/70'
                 : 'border-slate-300 bg-slate-50/90'
             }`}
           >

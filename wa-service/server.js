@@ -296,7 +296,7 @@ app.post('/api/test-send', async (req, res) => {
     return res.status(400).json({ success: false, message: 'WhatsApp belum terhubung. Silakan scan QR terlebih dahulu.' });
   }
 
-  const { phone, message, sendFlyer = true } = req.body;
+  const { phone, message, sendFlyer = true, id_registrasi: idRegistrasi } = req.body;
   if (!phone || !message) {
     return res.status(400).json({ success: false, message: 'Nomor telepon dan pesan wajib diisi.' });
   }
@@ -320,19 +320,30 @@ app.post('/api/test-send', async (req, res) => {
     await sock.sendPresenceUpdate('composing', jid);
     await sleep(randomBetween(1500, 2500));
 
-    const flyerPath = path.join(ASSETS_DIR, 'invitation.jpg');
     const isFlyerRequested = sendFlyer === true || String(sendFlyer) === 'true';
-    const hasFlyer = isFlyerRequested && fs.existsSync(flyerPath);
+    if (isFlyerRequested && !String(idRegistrasi || '').trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID registrasi diperlukan untuk membuat QR tiket uji coba.'
+      });
+    }
+    const hasQr = isFlyerRequested && Boolean(String(idRegistrasi || '').trim());
 
-    if (hasFlyer) {
-      console.log(`[WA Service] Mengirim pesan dengan flyer (${flyerPath}) ke ${jid}`);
+    if (hasQr) {
+      const qrImage = await QRCode.toBuffer(String(idRegistrasi).trim(), {
+        type: 'png',
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        scale: 8,
+      });
+      console.log(`[WA Service] Mengirim QR tiket ${idRegistrasi} ke ${jid}`);
       await sock.sendMessage(jid, {
-        image: fs.readFileSync(flyerPath),
+        image: qrImage,
         caption: message,
-        mimetype: 'image/jpeg'
+        mimetype: 'image/png'
       });
     } else {
-      console.log(`[WA Service] Mengirim pesan teks saja ke ${jid} (flyerRequested: ${isFlyerRequested}, exists: ${fs.existsSync(flyerPath)})`);
+      console.log(`[WA Service] Mengirim pesan teks saja ke ${jid} (QR diminta: ${isFlyerRequested}, ID registrasi tersedia: ${Boolean(idRegistrasi)})`);
       await sock.sendMessage(jid, { text: message });
     }
 
@@ -419,7 +430,7 @@ app.post('/api/blast', async (req, res) => {
 
   res.json({
     success: true,
-    message: `Proses blast untuk ${participants.length} peserta telah dimulai (Flyer: ${sendFlyer ? 'Aktif' : 'Non-aktif'}).`,
+      message: `Proses blast untuk ${participants.length} peserta telah dimulai (QR tiket: ${sendFlyer ? 'Aktif' : 'Non-aktif'}).`,
     total: participants.length
   });
 });
@@ -451,10 +462,8 @@ app.post('/api/blast/stop', (req, res) => {
 });
 
 async function runBlastJob({ messageTemplate, participants, minDelay, maxDelay, batchSize, batchPauseMs, sendFlyer, webBaseUrl }) {
-  const flyerPath = path.join(ASSETS_DIR, 'invitation.jpg');
   const isFlyerRequested = sendFlyer === true || String(sendFlyer) === 'true';
-  const hasFlyer = isFlyerRequested && fs.existsSync(flyerPath);
-  console.log(`[Blast Job] Memulai pengiriman ke ${participants.length} peserta (Kirim Gambar: ${hasFlyer ? 'YA' : 'TIDAK'})...`);
+  console.log(`[Blast Job] Memulai pengiriman ke ${participants.length} peserta (QR tiket: ${isFlyerRequested ? 'YA' : 'TIDAK'})...`);
 
   for (let i = 0; i < participants.length; i++) {
     if (blastState.shouldStop) {
@@ -467,6 +476,18 @@ async function runBlastJob({ messageTemplate, participants, minDelay, maxDelay, 
     blastState.currentParticipant = participant.name || `Peserta #${i + 1}`;
 
     const formattedPhone = formatPhoneNumber(participant.notelp);
+
+    if (isFlyerRequested && !String(participant.id_registrasi || '').trim()) {
+      blastState.skipped++;
+      blastState.logs.unshift({
+        phone: participant.notelp || '-',
+        name: participant.name,
+        status: 'skipped',
+        time: new Date().toLocaleTimeString('id-ID'),
+        message: 'ID registrasi tidak tersedia untuk QR tiket'
+      });
+      continue;
+    }
 
     if (!formattedPhone) {
       blastState.skipped++;
@@ -500,11 +521,17 @@ async function runBlastJob({ messageTemplate, participants, minDelay, maxDelay, 
       await sock.sendPresenceUpdate('composing', jid);
       await sleep(randomBetween(1500, 2500));
 
-      if (hasFlyer) {
+      if (isFlyerRequested) {
+        const qrImage = await QRCode.toBuffer(String(participant.id_registrasi).trim(), {
+          type: 'png',
+          errorCorrectionLevel: 'H',
+          margin: 2,
+          scale: 8,
+        });
         await sock.sendMessage(jid, {
-          image: fs.readFileSync(flyerPath),
+          image: qrImage,
           caption: compiledMessage,
-          mimetype: 'image/jpeg'
+          mimetype: 'image/png'
         });
       } else {
         await sock.sendMessage(jid, { text: compiledMessage });
@@ -518,7 +545,7 @@ async function runBlastJob({ messageTemplate, participants, minDelay, maxDelay, 
         name: participant.name,
         status: 'success',
         time: new Date().toLocaleTimeString('id-ID'),
-        message: hasFlyer ? 'Terkirim (dengan Gambar)' : 'Terkirim'
+        message: isFlyerRequested ? 'Terkirim (dengan QR tiket)' : 'Terkirim'
       });
       console.log(`[Blast Job] [${i + 1}/${participants.length}] Terkirim ke ${participant.name} (${formattedPhone})`);
 
