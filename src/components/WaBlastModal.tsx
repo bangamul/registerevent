@@ -26,19 +26,19 @@ const DEFAULT_TEMPLATE = `Kepada Yth.
 
 Dengan hormat kami mengundang Anda untuk hadir pada acara:
 
-*PELUNCURAN BUKU: TIMAH, MANUSIA, DAN MASA DEPAN*
-_Menata Ulang Arah Pembangunan Hijau dan Digital_
+*EVENT SEMINAR JANUARI 2027*
+_Event Pertama di Tahun 2027_
 
-📅 *Hari/Tanggal:* Senin, 9 November 2026
-⏰ *Waktu:* 15.00 - 19.00 WIB
-📍 *Tempat:* Sumba Room, Hotel Borobudur Jakarta
+*Hari/Tanggal:* Sabtu, 2 Januari 2027
+*Waktu:* 10.00 - 12.00 WIB
+*Tempat:* Istora Senayan, Jakarta
 
-Mohon lakukan konfirmasi kehadiran & pengambilan E-Ticket QR Code Anda melalui tautan resmi di bawah ini:
+Mohon lakukan konfirmasi kehadiran melalui tautan resmi di bawah ini:
 🔗 {{url_registrasi}}
 
 ⚠️ *Catatan Keamanan:*
 - Tautan di atas terikat khusus dengan nomor WhatsApp Anda.
-- Tautan hanya dapat digunakan 1 (satu) kali untuk menerbitkan E-Ticket QR Code.
+- Tautan hanya dapat digunakan 1 (satu) kali.
 - Simpan QR Code yang diterbitkan untuk ditunjukkan kepada petugas saat masuk di lokasi acara.
 
 Terima kasih atas perhatian dan kehadiran Bapak/Ibu.
@@ -210,6 +210,10 @@ export function WaBlastModal({
       setTestFeedback({ success: false, message: 'Masukkan nomor WhatsApp Anda untuk uji coba.' })
       return
     }
+    if (sendFlyer && !validParticipants[0]?.id_registrasi) {
+      setTestFeedback({ success: false, message: 'QR uji coba membutuhkan peserta dengan ID registrasi. Pilih peserta terlebih dahulu.' })
+      return
+    }
 
     try {
       setTestLoading(true)
@@ -217,16 +221,23 @@ export function WaBlastModal({
 
       const cleanBase = (webBaseUrl || 'http://localhost:5173').replace(/\/$/, '')
       const testUrl = `${cleanBase}/landing`
+      const sample = validParticipants[0] || {
+        name: 'Bpk. Amul',
+        id_registrasi: 'REG-000000A1',
+        notelp: testPhone.trim(),
+        role_permission: '1',
+        gate: '1',
+      }
 
       let compiledTestMessage = template
       compiledTestMessage = compiledTestMessage.replace(/{{\s*(url_registrasi|link_registrasi)\s*}}/gi, testUrl)
-      compiledTestMessage = compiledTestMessage.replace(/{{\s*(name|nama)\s*}}/gi, 'Tamu Uji Coba')
-      compiledTestMessage = compiledTestMessage.replace(/{{\s*id_registrasi\s*}}/gi, 'REG-TEST-001')
+      compiledTestMessage = compiledTestMessage.replace(/{{\s*(name|nama)\s*}}/gi, sample.name || '')
+      compiledTestMessage = compiledTestMessage.replace(/{{\s*id_registrasi\s*}}/gi, sample.id_registrasi || '')
       compiledTestMessage = compiledTestMessage.replace(/{{\s*notelp\s*}}/gi, testPhone.trim())
-      compiledTestMessage = compiledTestMessage.replace(/{{\s*(sesi|role_permission)\s*}}/gi, 'Sesi 1')
-      compiledTestMessage = compiledTestMessage.replace(/{{\s*gate\s*}}/gi, 'Gate 1')
+      compiledTestMessage = compiledTestMessage.replace(/{{\s*(sesi|role_permission)\s*}}/gi, sample.role_permission ? `Sesi ${sample.role_permission}` : 'Sesi 1')
+      compiledTestMessage = compiledTestMessage.replace(/{{\s*gate\s*}}/gi, sample.gate ? `Gate ${sample.gate}` : 'Gate 1')
 
-      const res = await sendTestWa(testPhone.trim(), compiledTestMessage, sendFlyer, webBaseUrl)
+      const res = await sendTestWa(testPhone.trim(), compiledTestMessage, sendFlyer, webBaseUrl, validParticipants[0]?.id_registrasi)
       setTestFeedback({ success: res.success, message: res.message })
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
@@ -252,7 +263,7 @@ export function WaBlastModal({
       return
     }
 
-    const confirmMsg = `Mulai blast pesan ke ${validParticipants.length} peserta?\n\nKirim Gambar Flyer: ${sendFlyer ? 'YA' : 'TIDAK'}\nPengiriman akan menerapkan jeda acak ${minDelay}-${maxDelay} detik dan jeda istirahat berkala untuk mencegah pemblokiran nomor.`
+    const confirmMsg = `Mulai blast pesan ke ${validParticipants.length} peserta?\n\nKirim QR Code Tiket: ${sendFlyer ? 'YA' : 'TIDAK'}\nPengiriman akan menerapkan jeda acak ${minDelay}-${maxDelay} detik dan jeda istirahat berkala untuk mencegah pemblokiran nomor.`
     if (!confirm(confirmMsg)) return
 
     try {
@@ -505,9 +516,9 @@ export function WaBlastModal({
           {/* TAB 2: TULIS PESAN, GAMBAR, & TEST SEND */}
           {activeTab === 'pesan' && (
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* Kolom Kiri: Editor Pesan & Pengaturan Gambar */}
+              {/* Kolom Kiri: Editor Pesan & Pengaturan QR */}
               <div className="space-y-4">
-                {/* Opsi Lampiran Gambar Flyer */}
+                {/* Opsi Lampiran QR Tiket */}
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.07] p-4">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -518,11 +529,11 @@ export function WaBlastModal({
                         className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-400"
                       />
                       <span className="text-sm font-bold text-white">
-                        Sertakan Gambar Undangan (Flyer Buku)
+                        Sertakan QR Code Tiket Peserta
                       </span>
                     </label>
                     <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                      Peluncuran Buku Timah
+                      QR berisi ID registrasi
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-slate-400 pl-7">
@@ -628,16 +639,13 @@ export function WaBlastModal({
                 </label>
                 <div className="flex-1 rounded-3xl border border-slate-800 bg-[#0b141a] p-4 text-slate-200 shadow-inner flex flex-col justify-end min-h-[380px]">
                   <div className="self-end max-w-[88%] rounded-2xl rounded-tr-none bg-[#005c4b] overflow-hidden text-sm text-white shadow-md">
-                    {/* Flyer Image Preview inside WA Bubble */}
+                    {/* QR ticket preview inside WA bubble */}
                     {sendFlyer && (
                       <div className="relative border-b border-black/10 bg-black/20">
-                        <img
-                          src="/invitation-v2.jpg"
-                          alt="Flyer Acara"
-                          className="w-full max-h-56 object-cover object-top"
-                        />
-                        <div className="absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[9px] text-white">
-                          Lampiran Gambar
+                        <div className="flex min-h-28 flex-col items-center justify-center gap-2 bg-white p-4 text-slate-900">
+                          <span className="text-3xl" aria-hidden="true">▦</span>
+                          <span className="text-[10px] font-semibold">QR tiket unik dibuat untuk tiap peserta saat pengiriman</span>
+                          <span className="text-[10px]">Isi QR: ID registrasi peserta</span>
                         </div>
                       </div>
                     )}
@@ -835,7 +843,7 @@ export function WaBlastModal({
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-4 text-xs text-slate-400">
                     <span>
-                      Target: <b>{validParticipants.length} Peserta</b> • Kirim Gambar: <b>{sendFlyer ? 'Aktif' : 'Tidak'}</b>
+                      Target: <b>{validParticipants.length} Peserta</b> • Kirim QR Tiket: <b>{sendFlyer ? 'Aktif' : 'Tidak'}</b>
                     </span>
                     <span>
                       Estimasi durasi: ~{Math.round((validParticipants.length * ((minDelay + maxDelay) / 2) + (Math.floor(validParticipants.length / batchSize) * batchPauseMinutes * 60)) / 60)} Menit
