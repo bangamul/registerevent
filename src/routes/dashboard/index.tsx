@@ -1101,7 +1101,7 @@ function ParticipantTableRow({
             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition active:scale-95 ${
               isCopied
                 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 whitespace-nowrap'
+                : 'border-slate-700 bg-slate-900 tTandaiext-slate-300 hover:border-cyan-400 hover:text-cyan-300 whitespace-nowrap hidden!'
             }`}
           >
             {isCopied ? 'Disalin' : 'Salin Link'}
@@ -1114,7 +1114,7 @@ function ParticipantTableRow({
               type="button"
               onClick={() => onMarkWaSent(participant)}
               title="Tandai undangan ini sudah dikirim manual oleh klien"
-              className="rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] font-medium text-slate-400 hover:border-emerald-500 hover:text-emerald-300 transition"
+              className="rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] font-medium text-slate-400 hover:border-emerald-500 hover:text-emerald-300 transition hidden!"
             >
               Tandai
             </button>

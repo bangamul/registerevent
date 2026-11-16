@@ -76,13 +76,15 @@ export async function sendTestWa(
   phone: string,
   message: string,
   sendFlyer = true,
-  webBaseUrl?: string
+  webBaseUrl?: string,
+  id_registrasi?: string
 ): Promise<{ success: boolean; message: string }> {
   const res = await axios.post(`${getWaBaseUrl()}/api/test-send`, {
     phone,
     message,
     sendFlyer,
     webBaseUrl,
+    id_registrasi,
   })
   return res.data
 }
